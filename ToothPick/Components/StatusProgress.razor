@@ -1,0 +1,44 @@
+﻿@inherits StatusProgressBase
+
+<ul class="list-group">
+    <li class="list-group-item bg-light">
+        <div class="d-flex bd-highlight align-items-center">
+            <div class="p-2 bd-highlight">
+                <button class="btn btn-danger" type="button" style="background-color:#0275d8;" data-toggle="modal" @onclick="ToggleEnabled">
+                    @($"{(Enabled ? "Disable Processing" : "Enable Processing")}")
+                </button>
+            </div>
+            <div class="p-2 flex-grow-1 bd-highlight">
+                @if (Enabled && TotalProcessingSeries > 0)
+                {
+                    <div class="progress position-relative" style="height: 28px; background-color: #959595">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @($"{ProgressPercent}%");" aria-valuenow="@ProgressPercent" aria-valuemin="0" aria-valuemax="100" />
+                        <div class="position-absolute overflow-hidden text-white" style="text-align:center; line-height:28px; font-size:18px; left:0; right:0;">
+                            @($"Processed {Progress} series out of {TotalProcessingSeries} ({ProgressPercent}%)")
+                        </div>
+                    </div>
+                }
+                else if (Enabled && NoLocations)
+                {                    
+                    @("There are no locations to process.")
+                }
+                else if (Enabled)
+                {
+                    @($"Next round of processing will start in {TimeUntilNextProcessing:hh\\:mm\\:ss}.")
+                }
+                else
+                {
+                    @("Processing is disabled.")
+                }
+            </div>
+            @if (Enabled)
+            {
+                <div class="p-2 bd-highlight">
+                    <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => { if (TotalProcessingSeries > 0) await StopProcessingCallback.InvokeAsync(ProcessingCancellationTokenSource).ConfigureAwait(false); else await StopWaitingCallback.InvokeAsync(ProcessingCancellationTokenSource).ConfigureAwait(false); }">
+                        <span class="oi oi-x" aria-hidden="true"></span>
+                    </button>
+                </div>
+            }
+        </div>
+    </li>
+</ul>

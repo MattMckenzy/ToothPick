@@ -1,0 +1,16 @@
+﻿<button class="btn btn-item-delete d-inline-flex align-items-center rounded my-1 px-1 py-0 text-danger" title="@DeleteTitle" @onclick=@(async () => await DeleteCallback.InvokeAsync(ItemKey))>
+    🗙
+</button>
+
+@code {
+
+    [Parameter]
+    public required string ItemKey { get; set; }
+
+    [Parameter]
+    public required EventCallback<string> DeleteCallback { get; set; }
+
+    [Parameter]
+    public string DeleteTitle { get; set; } = string.Empty;
+
+}

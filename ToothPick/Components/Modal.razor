@@ -1,0 +1,66 @@
+﻿<div class="modal fade" id="@MessageModalId" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@MessageModalHeaderTitle</h5>
+                @if (CancelFunction != null)
+                {
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick=CancelFunction>
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                }
+            </div>
+            <div class="modal-body">
+                <p>@MessageModalMessage</p>
+            </div>
+            <div class="modal-footer">
+                @if (ConfirmFunction != null)
+                {
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" @onclick=ConfirmFunction>@ConfirmButton</button>
+                }
+                @if (RefuseFunction != null)
+                {
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" @onclick=RefuseFunction>@RefuseButton</button>
+                }
+                @if (CancelFunction != null)
+                {
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick=CancelFunction>@CancelButton</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">@CancelButton</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string MessageModalId { get; set; }
+    [Parameter]
+    public string MessageModalHeaderTitle { get; set; }
+    [Parameter]
+    public string MessageModalMessage { get; set; }
+    [Parameter]
+    public string ConfirmButton { get; set; }
+    [Parameter]
+    public string RefuseButton { get; set; }
+    [Parameter]
+    public string CancelButton { get; set; }
+
+    [Parameter]
+    public Func<Task> ConfirmFunction { get; set; } = null;
+    [Parameter]
+    public Func<Task> RefuseFunction { get; set; } = null;
+    [Parameter]
+    public Func<Task> CancelFunction { get; set; } = null;
+
+}

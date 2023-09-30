@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ToothPick", "ToothPick\ToothPick.csproj", "{E5F6AE44-8D2E-4513-A8E5-00165E414C4E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "YoutubeDLSharp", "YoutubeDLSharp", "{25443ACD-CAAC-4B34-A159-268D750ED825}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoutubeDLSharp", "YoutubeDLSharp\YoutubeDLSharp\YoutubeDLSharp.csproj", "{E5FEE243-7846-4C22-A6C8-153C88910053}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E5F6AE44-8D2E-4513-A8E5-00165E414C4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5F6AE44-8D2E-4513-A8E5-00165E414C4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5F6AE44-8D2E-4513-A8E5-00165E414C4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5F6AE44-8D2E-4513-A8E5-00165E414C4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5FEE243-7846-4C22-A6C8-153C88910053}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5FEE243-7846-4C22-A6C8-153C88910053}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5FEE243-7846-4C22-A6C8-153C88910053}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5FEE243-7846-4C22-A6C8-153C88910053}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E5FEE243-7846-4C22-A6C8-153C88910053} = {25443ACD-CAAC-4B34-A159-268D750ED825}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B7D576A1-7BB2-460C-9A75-7D3198963C03}
+	EndGlobalSection
+EndGlobal

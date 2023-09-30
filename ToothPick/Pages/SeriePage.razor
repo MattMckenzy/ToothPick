@@ -1,0 +1,37 @@
+﻿@page "/libraries/{LibraryName}/series/{SerieName}"
+
+@inject ToothPickContext ToothPickContext
+@inject NavigationManager NavigationManager
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="@("/libraries")">Libraries</a></li>
+        <li class="breadcrumb-item"><a href="@($"/libraries/{LibraryName}")">@LibraryName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@SerieName</li>
+    </ol>
+</nav>
+
+<h2>Locations</h2>
+
+<br />
+
+<h2>Medias</h2>
+
+@code {
+
+    [Parameter]
+    public string LibraryName { get; set; }
+    [Parameter]
+    public string SerieName { get; set; }
+
+    IList<Location> locations;
+    IList<Media> medias;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        locations = ToothPickContext.Locations.Where(location => location.LibraryName.Equals(LibraryName) && location.SerieName.Equals(SerieName)).ToList();
+        medias = ToothPickContext.Medias.Where(location => location.LibraryName.Equals(LibraryName) && location.SerieName.Equals(SerieName)).OrderByDescending(media => media.DatePublished).ToList();
+    }
+}

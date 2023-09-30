@@ -1,0 +1,125 @@
+﻿@typeparam TFieldEnum where TFieldEnum : struct, Enum
+
+<div class="d-flex justify-content-between align-items-center flex-wrap">
+    <div class="d-flex align-items-center flex-wrap">
+
+        <div class="me-3 mb-2" style="width:250px;">
+            <label class="mb-1" for="sortSelect">Order</label>
+            <div class="input-group">
+
+                <select class="form-select" id="sortSelect"
+                        @onchange=@(async (ChangeEventArgs changeEventArgs) => await OrderingFieldCallback(Enum.Parse<TFieldEnum>((string)changeEventArgs.Value!)))>
+                    @foreach (TFieldEnum orderingField in Enum.GetValues<TFieldEnum>())
+                    {
+                        <option value="@orderingField" selected="@(SelectedOrderingField.Equals(orderingField))">@orderingField.ToString())</option>
+                    }
+                </select>
+
+                <button class="btn btn-outline-secondary" type="button" @onclick=@(async () => await OrderingCallback())>
+                    <i class="bi @(IsAscending ? "bi-arrow-up" : "bi-arrow-down")"></i>
+                </button>
+                
+            </div>
+        </div>
+
+        <div class="me-3 mb-2" style="width:250px;">
+            <label class="mb-1" for="filterBox">Search</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="filterBox" value=@FilterValues[string.Empty]
+                    @oninput=@(async (ChangeEventArgs changeEventArgs) => await Helpers.DelayCancel(FilterUpdate, string.Empty, (string)changeEventArgs.Value!)) />
+                <button class="btn btn-outline-secondary" type="button" @onclick=Show title="Advanced Fields">
+                    <i class="bi @(FilterValues.Where(keyValuePair => !string.IsNullOrEmpty(keyValuePair.Key)).Any(keyValuePair => !string.IsNullOrEmpty(keyValuePair.Value)) ? "bi-funnel-fill" : "bi-funnel")"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @onclick=@(async() => await ClearFilters())>
+                    <span>Clear</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="toast-container @(AreFiltersVisible ? "d-block" : "d-none")">
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto">Advanced Fields</strong>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick=Close></button>
+                </div>
+
+                <div class="toast-body overflow-y-auto">
+                        @foreach (TFieldEnum filteringField in Enum.GetValues<TFieldEnum>())
+                        {
+                            <div class="mb-2">
+                                <label class="mb-1" for="filterBox">filteringField.ToString()</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="filterBox-@filteringField.ToString()" value=@FilterValues[filteringField.ToString()]
+                                       @oninput=@(async (ChangeEventArgs changeEventArgs) => await Helpers.DelayCancel(FilterUpdate, filteringField.ToString(), (string)changeEventArgs.Value!)) />
+                                    <button class="btn btn-outline-secondary" type="button" @onclick=@(async() => await FilterUpdate(filteringField.ToString(), string.Empty))>
+                                        <span>Clear</span>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                </div>
+            </div>
+        </div>
+
+    </div>
+    @if (IsUpdating)
+    {
+        <div class="d-inline-block mb-2">
+            <div class="spinner-border" role="status"></div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required Func<TFieldEnum, Task> OrderingFieldCallback { get; set; }
+
+    [Parameter]
+    public required TFieldEnum SelectedOrderingField { get; set; }
+
+    [Parameter]
+    public required Func<Task> OrderingCallback { get; set; }
+
+    [Parameter]
+    public required bool IsAscending { get; set; }
+
+    [Parameter]
+    public required Func<Dictionary<string, string>, Task> FilteringCallback { get; set; }
+
+    [Parameter]
+    public required Dictionary<string, string> FilterValues { get; set; }
+
+    [Parameter]
+    public bool IsUpdating { get; set; } = false;
+
+    private bool AreFiltersVisible { get; set; } = false;
+
+    private async Task FilterUpdate(string filter, string value)
+    {
+        FilterValues[filter] = value;
+
+        if (FilteringCallback != null)
+            await FilteringCallback(FilterValues);
+    }
+
+    private async Task ClearFilters()
+    {
+        foreach (string key in FilterValues.Keys)
+            FilterValues[key] = string.Empty;
+
+        if (FilteringCallback != null)
+            await FilteringCallback(FilterValues);
+    }
+
+    public async void Show()
+    {
+        AreFiltersVisible = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void Close()
+    {
+        AreFiltersVisible = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}

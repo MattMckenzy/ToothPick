@@ -1,0 +1,43 @@
+﻿@using ToothPick.Models
+
+<div @ref=ModalMessageReference class="modal fade" aria-hidden="true" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@ModalPromptContext?.Title</h5>
+            </div>
+            <div class="modal-body">
+                @ModalPromptContext?.Body
+            </div>
+            <div class="modal-footer">
+                @if (ModalPromptContext?.ChoiceAction != null)
+                {
+                    <button type="button" class="btn btn-@ModalPromptContext?.ChoiceColour btn-sm me-2" data-bs-dismiss="modal" @onclick=ModalPromptContext?.ChoiceAction!>@ModalPromptContext?.Choice</button>
+                }
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">@ModalPromptContext?.CancelChoice</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = null!;
+
+    private ModalPromptContext ModalPromptContext { get; set; } = null;
+
+    private ElementReference ModalMessageReference { get; set; }
+
+    public async Task ShowModalPrompt(ModalPromptContext modalPromptContext)
+    {
+        if (modalPromptContext != null)
+        {
+            ModalPromptContext = modalPromptContext;
+            await InvokeAsync(StateHasChanged);
+            await JSRuntime.InvokeVoidAsync("showModal", ModalMessageReference);
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+}

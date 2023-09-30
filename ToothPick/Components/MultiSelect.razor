@@ -1,0 +1,81 @@
+﻿@typeparam TEnum where TEnum : struct, Enum
+
+@inherits RenderComponentBase
+
+<div @ref=MenuRef class="dropdown menu-actions">
+    <input id="dropdownToggle@(Id)" class="btn btn-light dropdown-toggle text-start form-control w-100" type="text" data-role="menubutton" aria-haspopup="true" aria-controls="dropdownMenu@(Id)" aria-expanded="false" value=@SelectedText readonly />
+    <div id="dropdownMenu@(Id)" class="dropdown-menu" aria-labelledby="dropdownToggle@(Id)" role="menu">
+        @foreach (KeyValuePair<TEnum, string> keyValuePair in Options)
+        {
+            <div class="form-check dropdown-item" @onclick="@(() => Select(keyValuePair))" key="@keyValuePair.Key" role="menuitem">
+                <input class="form-check-input @(keyValuePair.Value.Equals(SelectedText) ? "active": string.Empty)" type="checkbox"
+                       checked=@Selected.Contains(keyValuePair.Key) />
+                <label class="form-check-label">
+                    @keyValuePair.Value
+                </label>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = null!;
+
+    [Parameter]
+    public required IEnumerable<TEnum> Selected { get; set; } = Array.Empty<TEnum>();
+
+    [Parameter]
+    public required Dictionary<TEnum, string> Options { get; set; } = null!;
+
+    [Parameter]
+    public required EventCallback<ChangeEventArgs> OnChange { get; set; }
+
+    [Parameter]
+    public required string NoneSelectedMessage { get; set; }
+
+    private ElementReference MenuRef { get; set; }
+
+    private Guid Id = Guid.NewGuid();
+
+    private bool IsDropDownVisisble { get; set; }
+
+    private string SelectedText { get; set; }
+
+    [JSInvokable]
+    public async void SelectInvokable(string key)
+    {
+        if (Enum.TryParse<TEnum>(key, out TEnum enumKey) &&
+            Options.TryGetValue(enumKey, out string value) &&
+            value != null)
+        {
+            await Select(new KeyValuePair<TEnum, string>(enumKey, value));
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Select(KeyValuePair<TEnum, string> keyValuePair)
+    {
+        if (Selected.Any(key => key.Equals(keyValuePair.Key)))
+            Selected = Selected.Where(key => !key.Equals(keyValuePair.Key));
+        else
+            Selected = Selected.Union(new TEnum[] { keyValuePair.Key });
+
+        await OnChange.InvokeAsync(new ChangeEventArgs() { Value = Selected });
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JSRuntime.InvokeVoidAsync("initializeMenuActions", DotNetObjectReference.Create(this), Id.ToString(), MenuRef);
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        SelectedText = Selected.Any() ? string.Join(", ", Selected.Select(key => Options[key])) : NoneSelectedMessage;
+        await base.OnParametersSetAsync();
+    }
+}

@@ -1,0 +1,44 @@
+﻿@inject DownloadsService DownloadsService
+@inject IJSRuntime JSRuntime
+@inherits DownloadItemBase 
+
+<li class="list-group-item bg-light">
+    <div class="d-flex bd-highlight align-items-center">
+        <div class="p-2 flex-grow-1 bd-highlight overflow-hidden text-truncate">@Media.LibraryName / @Media.SerieName / @Media.Title @(Media.DatePublished != null ? $"({Media.DatePublished.ToString()})" : string.Empty)</div>
+        <div class="p-2 bd-highlight">
+            <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => await SaveTrackingCallback.InvokeAsync(Download).ConfigureAwait(false)">
+                <span class="oi oi-x" aria-hidden="true"></span>
+            </button>
+        </div>
+    </div>
+    <div class="d-flex bd-highlight align-items-center">
+        <div class="p-2 flex-grow-1 bd-highlight">
+            <div class="progress position-relative" style="height: 28px; background-color: #959595">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @($"{progress}%");" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100" />
+                <div class="position-absolute overflow-hidden text-white" style="text-align:center; line-height:28px; font-size:18px; left:0; right:0;">
+                    @if (DownloadProgress != null && DownloadProgress.State.Equals(DownloadState.Downloading))
+                    {
+                        @($"{DownloadProgress.State.ToString()} - {progress}% of {DownloadProgress.TotalDownloadSize} @ {DownloadProgress.DownloadSpeed} - {DownloadProgress.ETA} left");
+                    }
+                    else if (DownloadProgress != null)
+                    {
+                        @(DownloadProgress.State.ToString())
+                    }
+                    else
+                    {
+                        @("Download pending...")
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (DownloadProgress != null && !string.IsNullOrWhiteSpace(DownloadProgress.Data))
+    {
+        <div class="d-flex bd-highlight align-items-center">
+            <strong class="p-2 flex-grow-1 bd-highlight overflow-hidden text-wrap text-danger">
+                @DownloadProgress.Data
+            </strong>
+        </div>
+    }
+</li>

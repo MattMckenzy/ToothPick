@@ -1,0 +1,93 @@
+﻿@page "/libraries"
+
+@inject ToothPickContext ToothPickContext
+@inject IJSRuntime JS
+
+@using Newtonsoft.Json
+@using System.IO
+@using System.Text
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Libraries</li>
+    </ol>
+</nav>
+
+<br />
+
+<h2>Libraries</h2>
+
+@if (libraries == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="d-flex flex-row bd-highlight mb-2">
+        <button @onclikc="ExportLibraries">
+            Export All Libraries
+        </button>
+    </div>
+
+    <div class="d-flex flex-row bd-highlight mb-3">
+        <span class="rz-fileupload-choose rz-button btn-secondary">
+            <InputFile OnChange="ImportLibraries" />
+            <span class="rz-button-text">Import Libraries File</span>
+        </span>
+    </div>
+
+}
+
+@code {
+
+    IList<Library> libraries;
+                
+    [CascadingParameter]
+    public EventCallback<(string Title, string Message)> ImportFileCallback { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        libraries = ToothPickContext.Libraries.OrderBy(library => library.Name).ToList();
+    }
+
+    private async void ExportLibraries()
+    {       
+        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ToothPickContext.Libraries.ToArray(), Formatting.Indented));
+        MemoryStream stream = new MemoryStream(byteArray);
+        string fileName = "libraries.json";
+        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private async void ImportLibraries(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        if (inputFileChangeEventArgs.FileCount == 1)
+        {
+            using StreamReader streamReader = new StreamReader(inputFileChangeEventArgs.File.OpenReadStream());
+            string librariesString = await streamReader.ReadToEndAsync();
+            IEnumerable<Library> libraries = JsonConvert.DeserializeObject<IEnumerable<Library>>(librariesString);
+
+            foreach (Library newLibrary in libraries)
+            {
+                if (!ToothPickContext.Libraries.Any(library => library.Name.Equals(newLibrary.Name)) &&
+                    !ToothPickContext.ChangeTracker.Entries<Library>().Any(library => library.Entity.Name.Equals(newLibrary.Name)))
+                {
+                    ToothPickContext.Libraries.Add(newLibrary);
+                }
+            }
+
+            if (ToothPickContext.ChangeTracker.HasChanges())
+            {
+                await ImportFileCallback.InvokeAsync(($"Imported succesfully", 
+                    $"Imported libraries file \"{inputFileChangeEventArgs.File.Name}\" succesfully! Added {ToothPickContext.ChangeTracker.Entries<Library>().Count(e => e.State == EntityState.Added)} new libraries!"));
+                await ToothPickContext.SaveChangesAsync();
+            }
+            else
+            {
+                await ImportFileCallback.InvokeAsync(($"Nothing imported", $"No new libraries were detected. Nothing was imported."));
+            }
+        }
+    }
+
+}

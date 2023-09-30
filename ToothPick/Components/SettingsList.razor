@@ -1,0 +1,40 @@
+﻿@using ToothPick.Components;
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+@if (IsLoading)
+{
+    <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+
+<div class="settings" hidden=@IsLoading>
+
+    @if (SettingKeys != null)
+    {
+        <EntitySidebar Title="Settings"
+            Items=@SettingKeys
+            DeleteCallback=DeleteSetting
+            DeleteTitle="Delete Setting"
+            LoadCallback=LoadSetting
+            CurrentItem=@CurrentSetting?.Name></EntitySidebar>
+    }
+
+    <div class="main mb-3">
+        <div class="mb-3">
+            <label for="settingName" class="form-label">Name</label>
+            <input type="text" class="form-control readonly disabled" id="settingName" value="@(CurrentSetting != null ? CurrentSetting.Name : string.Empty)" readonly disabled>
+        </div>
+        <div class="mb-3">
+            <label for="settingValue" class="form-label">Value</label>
+            <input type="text" class="form-control enter-next @(!CurrentSettingIsValid ? "readonly disabled" : (CurrentSettingIsDirty ? "is-valid" : string.Empty))" id="settingValue" value="@CurrentSetting?.Value" readonly=@(!CurrentSettingIsValid) disabled="@(!CurrentSettingIsValid)"
+                @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Setting.Value), changeEventArgs.Value!)) />
+        </div>
+        <div>
+            <button id="saveButton" class="btn btn-success @(!CurrentSettingIsValid || !CurrentSettingIsDirty ? "disabled" : string.Empty)" @onclick="SaveSetting" disabled="@(!CurrentSettingIsValid || !CurrentSettingIsDirty)">
+                Save Setting
+            </button>
+        </div>
+    </div>
+</div>

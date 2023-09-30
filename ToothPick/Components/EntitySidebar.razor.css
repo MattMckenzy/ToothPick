@@ -1,0 +1,98 @@
+﻿@media (min-width: 800px) {
+
+    .sidebar {
+        border-right: solid 2px rgba(190,25,25,0.75);
+    }
+
+}
+
+@media (max-width: 800px) {
+    .sidebar {
+        border-bottom: solid 2px rgba(190,25,25,0.75);
+        margin-bottom: 1.5rem;
+    }
+
+    .sidebar-list {
+        margin-bottom: 1rem;
+    }
+}
+
+.sidebar {
+    grid-area: sidebar;
+}
+
+.sticky-wrapper {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 2rem;
+    display: block !important;
+
+}
+
+.sidebar-list {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    margin-left: -0.25rem;
+    overflow-y: auto;
+}
+
+    .sidebar-list .btn-category {
+        padding: 0.25rem 0.5rem;
+        font-weight: 600;
+        color: rgba(0,0,0,0.65);
+        background-color: transparent;
+        border: 0;
+    }
+
+        .sidebar-list .btn-category > .oi::before {
+            display: inline-block;
+            width: 1.25em;
+            line-height: 0;
+            transition: transform 0.35s ease;
+            transform-origin: 0.5em 50%;
+            transform: rotate(90deg);
+            -webkit-transform: rotate(90deg);
+            -ms-transform: rotate(90deg);
+        }
+
+    .sidebar-list .collapsed > .oi::before {
+        transform: rotate(0deg);
+        -webkit-transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+    }
+
+    .sidebar-list .btn-category:focus {
+        box-shadow: 0 0 0 2px rgba(190,25,25,0.7);
+    }
+
+    .sidebar-list .btn-category:hover, .sidebar-list .btn-category:focus {
+        color: rgba(0,0,0,0.85);
+        background-color: rgba(190,25,25,0.1);
+    }
+
+    .sidebar-list .btn-item-load:focus, .sidebar-list .btn-item-load.selected {
+        box-shadow: 0 0 0 2px rgba(190,25,25, 0.8);
+    }
+
+    .sidebar-list .btn-item-load:hover, .sidebar-list .btn-item-load:focus, .sidebar-list .btn-item-load.selected {
+        color: rgba(0,0,0,0.85);
+        background-color: rgba(190,25,25,0.1);
+    }
+
+    .sidebar-list .btn-item-delete:focus {
+        box-shadow: 0 0 0 2px rgb(220 53 69 / 70%);
+    }
+
+    .sidebar-list .btn-item-delete:hover, .sidebar-list .btn-item-delete:focus {
+        color: rgba(220, 53, 69, 0.85);
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+.sidebar .btn-item-add:focus {
+    box-shadow: 0 0 0 2px rgb(25 135 84 / 70%);
+}
+
+.sidebar .btn-item-add:hover, .sidebar-list .btn-item-delete:focus {
+    color: rgba(25, 135, 84, 0.85);
+    background-color: rgba(25, 135, 84, 0.1);
+}

@@ -1,0 +1,19 @@
+﻿.toast-container {
+    top: calc(50% - 45vh);
+    left: calc(50% - 37.5vw);
+}
+
+.toast {
+    max-height: 90vh;
+    width: 75vw;
+    min-width: 275px;
+}
+
+.toast-header {
+    height: 38px;
+}
+
+.toast-body {
+    max-height: calc(90vh - 38px);
+    background-color: #ffffff;
+}
