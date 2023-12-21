@@ -1,0 +1,60 @@
+﻿<nav class="navbar navbar-dark bg-dark navbar-expand-lg navbar-toggleable-lg border-bottom box-shadow mb-3">
+    <div class="container">
+        <a class="navbar-brand" href=""><img src="favicon.ico" style="height:40px;" class="mr-1" />ToothPick</a>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+            <ul class="navbar-nav flex-grow-1">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="fs-4 me-2 bi bi-house-door" aria-hidden="true"></span> Home
+                    </NavLink>
+                </li>                
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="libraries">
+                        <span class="fs-4 me-2 bi bi-list" aria-hidden="true"></span> Libraries
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="series">
+                        <span class="fs-4 me-2 bi bi-list-stars" aria-hidden="true"></span> Series
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="locations">
+                        <span class="fs-4 me-2 bi bi-crosshair" aria-hidden="true"></span> Locations
+                    </NavLink>
+                </li>                 
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="media">
+                        <span class="fs-4 me-2 bi bi-collection-play" aria-hidden="true"></span> Media
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="settings">
+                        <span class="fs-4 me-2 bi bi-gear" aria-hidden="true"></span> Settings
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="management">
+                        <span class="fs-4 me-2 bi bi-download" aria-hidden="true"></span> Management
+                    </NavLink>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    bool collapseNavMenu = true;
+
+    string baseMenuClass = "navbar-collapse d-lg-inline-flex flex-lg-row-reverse";
+
+    string NavMenuCssClass => baseMenuClass + (collapseNavMenu ? " collapse" : "");
+
+    void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

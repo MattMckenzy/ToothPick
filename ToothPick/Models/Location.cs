@@ -1,27 +1,32 @@
-﻿namespace ToothPick.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ToothPick.Models
 {
+    [PrimaryKey(nameof(LibraryName), nameof(SeriesName), nameof(Name))]
+
     public class Location
     {
-        [Required]
-        public string LibraryName { get; set; }
+        [JsonIgnore, NotMapped]
+        public string DbKey { get { return $"{LibraryName}{SeriesName}{Name}"; } }
+
+        public string LibraryName { get; set; } = string.Empty;
         [JsonIgnore]
-        public virtual Library Library { get; set; }
+        public virtual Library? Library { get; set; }
 
-        [Required]
-        public string SerieName { get; set; }
+        public string SeriesName { get; set; } = string.Empty;
         [JsonIgnore]
-        public virtual Serie Serie { get; set; }
+        public virtual Series? Series { get; set; }
 
-        [Required]
-        public string Url { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        [Required]
-        public int FetchCount { get; set; } = 10;
+        public string Url { get; set; } = string.Empty;
 
-        public string MatchFilters { get; set; }
+        public int? FetchCount { get; set; }
 
-        public string DownloadFormat { get; set; }
+        public string MatchFilters { get; set; } = string.Empty;
 
-        public string Cookies { get; set; }
+        public string DownloadFormat { get; set; } = string.Empty;
+
+        public string Cookies { get; set; } = string.Empty;
     }
 }

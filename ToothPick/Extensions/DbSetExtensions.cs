@@ -18,11 +18,11 @@ namespace ToothPick.Extensions
         /// <returns>The setting, from the database or the default dictionary.</returns>
         public static async Task<Setting> GetSettingAsync(this DbSet<Setting> dbSet, string name, CancellationToken cancellationToken = default)
         {
-            Setting returnSetting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken);
+            Setting? returnSetting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken);
 
             if (returnSetting == null)
             {
-                if (Defaults.Settings.TryGetValue(name, out string value) && value != null)
+                if (Defaults.Settings.TryGetValue(name, out string? value) && value != null)
                     returnSetting = await dbSet.SetSettingAsync(name, value, cancellationToken);
                 else
                     returnSetting = await dbSet.SetSettingAsync(name, "", cancellationToken);
@@ -43,7 +43,7 @@ namespace ToothPick.Extensions
         /// <param name="value">The value to set.</param>
         public static async Task<Setting> SetSettingAsync(this DbSet<Setting> dbSet, string name, string value, CancellationToken cancellationToken = default)
         {
-            Setting setting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken);
+            Setting? setting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken);
 
             if (setting == null)
             {

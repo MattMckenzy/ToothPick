@@ -11,7 +11,7 @@ namespace ToothPick.Components
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [CascadingParameter(Name = nameof(Filter))]
-        public string Filter { get; set; }
+        public string? Filter { get; set; }
 
         private bool IsLoading { get; set; } = true;
         private List<GotifyMessage> GotifyMessages { get; set; } = [];

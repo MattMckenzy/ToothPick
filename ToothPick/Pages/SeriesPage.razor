@@ -1,142 +1,32 @@
 ﻿@page "/series"
 
-@using Newtonsoft.Json
-@using System.IO
-@using System.Text
+<PageTitle>ToothPick - Series</PageTitle>
 
-<h2>Series</h2>
-
-<div class="d-flex flex-row bd-highlight mb-2">
-    <button @onclick="ExportSeries">
-        Export All Series
-    </button>
-</div>
-
-<div class="d-flex flex-row bd-highlight mb-3">
-    <span class="rz-fileupload-choose rz-button btn-secondary">
-        <InputFile OnChange="ImportSeries" />
-        <span class="rz-button-text">Import Series File</span>
-    </span>
-</div>
-
-<div class="d-flex flex-row bd-highlight mb-2">
-    <button @onclick="ExportLocations">
-        Export All Locations
-    </button>
-</div>
-
-<div class="d-flex flex-row bd-highlight mb-3 align-items-center">   
-    <span class="rz-fileupload-choose rz-button btn-secondary">
-        <InputFile OnChange="ImportLocations" />
-        <span class="rz-button-text">Import Locations File</span>
-    </span>           
-</div>
-
-@code
-{
-    [Inject]
-    public ToothPickContext ToothPickContext { get; set; }
-
-    [Inject]
-    public IJSRuntime JS { get; set; }
-
-    private IList<Serie> series;
-
-    [CascadingParameter]
-    public EventCallback<(string Title, string Message)> ImportFileCallback { get; set; }
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        series = ToothPickContext.Series.OrderBy(serie => serie.Name).ToList();
-    }
-
-    private async void ExportSeries()
-    {
-        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ToothPickContext.Series.ToArray(), Formatting.Indented));
-        MemoryStream stream = new MemoryStream(byteArray);
-        string fileName = "series.json";
-        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
-    }
-
-    private async void ExportLocations()
-    {       
-        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ToothPickContext.Locations.ToArray(), Formatting.Indented));
-        MemoryStream stream = new MemoryStream(byteArray);
-        string fileName = "locations.json";
-        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
-    }
-
-    private async void ImportSeries(InputFileChangeEventArgs inputFileChangeEventArgs)
-    {
-        if (inputFileChangeEventArgs.FileCount == 1)
-        {
-            using StreamReader streamReader = new StreamReader(inputFileChangeEventArgs.File.OpenReadStream());
-            string seriesString = await streamReader.ReadToEndAsync();
-            IEnumerable<Serie> series = JsonConvert.DeserializeObject<IEnumerable<Serie>>(seriesString);
-
-            foreach (Serie newSerie in series)
-            {
-                if (ToothPickContext.Libraries.Any(library => library.Name.Equals(newSerie.LibraryName)) &&
-                    !ToothPickContext.Series.Any(serie => serie.LibraryName.Equals(newSerie.LibraryName) &&
-                        serie.Name.Equals(newSerie.Name)) &&
-                    !ToothPickContext.ChangeTracker.Entries<Serie>().Any(serie => serie.Entity.LibraryName.Equals(newSerie.LibraryName) &&
-                        serie.Entity.Name.Equals(newSerie.Name)))
-                {
-                    ToothPickContext.Series.Add(newSerie);
-                }
-            }
-
-            if (ToothPickContext.ChangeTracker.HasChanges())
-            {
-                await ImportFileCallback.InvokeAsync(($"Imported succesfully", 
-                    $"Imported series file \"{inputFileChangeEventArgs.File.Name}\" succesfully! Added {ToothPickContext.ChangeTracker.Entries<Serie>().Count(e => e.State == EntityState.Added)} new series!"));
-                await ToothPickContext.SaveChangesAsync();
-            }
-            else
-            {
-                await ImportFileCallback.InvokeAsync(($"Nothing imported", $"No new series were detected. Nothing was imported."));
-            }
-        }
-    }
-
-    private async void ImportLocations(InputFileChangeEventArgs inputFileChangeEventArgs)
-    {
-        if (inputFileChangeEventArgs.FileCount == 1)
-        {
-            using StreamReader streamReader = new StreamReader(inputFileChangeEventArgs.File.OpenReadStream());
-            string locationsString = await streamReader.ReadToEndAsync();
-            IEnumerable<Location> locations = JsonConvert.DeserializeObject<IEnumerable<Location>>(locationsString);
-
-            foreach (Location newLocation in locations)
-            {
-                if (ToothPickContext.Libraries.Any(library => library.Name.Equals(newLocation.LibraryName)) && 
-                    ToothPickContext.Series.Any(serie => serie.Name.Equals(newLocation.SerieName)) && 
-                    !ToothPickContext.Locations.Any(location => location.LibraryName.Equals(newLocation.LibraryName) &&
-                        location.SerieName.Equals(newLocation.SerieName) &&
-                        location.Url.Equals(newLocation.Url)) &&
-                    !ToothPickContext.ChangeTracker.Entries<Location>().Any(location => location.Entity.LibraryName.Equals(newLocation.LibraryName) &&
-                        location.Entity.SerieName.Equals(newLocation.SerieName) &&
-                        location.Entity.Url.Equals(newLocation.Url)))
-                {                
-                    ToothPickContext.Locations.Add(newLocation);
-                }
-            }
-                        
-            if (ToothPickContext.ChangeTracker.HasChanges())
-            {
-                await ImportFileCallback.InvokeAsync(($"Imported succesfully", 
-                    $"Imported locations file \"{inputFileChangeEventArgs.File.Name}\" succesfully! Added {ToothPickContext.ChangeTracker.Entries<Location>().Count(e => e.State == EntityState.Added)} new locations!"));
-                await ToothPickContext.SaveChangesAsync();
-            }
-            else
-            {
-                await ImportFileCallback.InvokeAsync(($"Nothing imported", $"No new lcoations were detected. Nothing was imported."));
-            }
-        }
+<CascadingValue Name="@nameof(ItemKey)" Value="@ItemKey">
+    <CascadingValue Name="@nameof(Order)" Value="@Order">
+        <CascadingValue Name="@nameof(IsAscending)" Value="@IsAscending">
+            <CascadingValue Name="@nameof(Filters)" Value="@Filters">
+                <SeriesList />
+            </CascadingValue>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
 
 
-    }
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(ItemKey))]
+    public string? ItemKey { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Order))]
+    public string? Order { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(IsAscending))]
+    public string? IsAscending { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Filters))]
+    public string? Filters { get; set; }
 }

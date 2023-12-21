@@ -1,27 +1,29 @@
-﻿namespace ToothPick.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ToothPick.Models
 {
+    [PrimaryKey(nameof(LibraryName), nameof(SeriesName), nameof(Location))]
+    
     public class Media
     {
-        [Required]
-        public string LibraryName { get; set; }
+        [JsonIgnore, NotMapped]
+        public string DbKey { get { return $"{LibraryName}{SeriesName}{Location}"; } }
+
+        public string LibraryName { get; set; } = string.Empty;
         [JsonIgnore]
-        public virtual Library Library { get; set; }
+        public virtual Library? Library { get; set; }
 
-        [Required]
-        public string SerieName { get; set; }
+        public string SeriesName { get; set; } = string.Empty;
         [JsonIgnore]
-        public virtual Serie Serie { get; set; }
+        public virtual Series? Series { get; set; }
 
-        [Required]
-        public string Location { get; set; }
+        public string Location { get; set; } = string.Empty;
 
-        [Required]
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
-        [Required]
-        public string Key { get; set; }
+        public string Key { get; set; } = string.Empty;
 
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         public int? SeasonNumber { get; set; }
 
@@ -29,7 +31,7 @@
 
         public float? Duration { get; set; }
 
-        public string ThumbnailLocation { get; set; }
+        public string ThumbnailLocation { get; set; } = string.Empty;
         
         public DateTime? DatePublished { get; set; }
     }

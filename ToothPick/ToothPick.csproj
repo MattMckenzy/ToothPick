@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <UserSecretsId>5ca7e622-9870-4f60-85ca-75b19c3a9420</UserSecretsId>
     <ApplicationIcon>ToothPickLogo.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +23,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
     <PackageReference Include="Nager.PublicSuffix" Version="2.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.3.5" />
     <PackageReference Include="WatsonWebsocket" Version="4.0.11" />
   </ItemGroup>
 

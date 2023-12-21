@@ -4,8 +4,9 @@ namespace ToothPick.Models
 {
     public class MediaDownload
     {
-        public Media Media { get; set; }
-        public OptionSet OptionSet { get; set; }
+        public required Media Media { get; set; }
+        public required Location Location { get; set; }
+        public required OptionSet OptionSet { get; set; }
         public CancellationTokenSource DownloadCancellationTokenSource { get; set; } = new();
     }
 }

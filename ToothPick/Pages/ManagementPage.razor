@@ -1,0 +1,414 @@
+﻿@page "/management"
+
+<PageTitle>ToothPick - Management</PageTitle>
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+<br />
+
+<h2>Libraries</h2>
+
+<div class="d-flex flex-row bd-highlight mb-2">
+    <button class="btn btn-primary" @onclick="ExportLibraries">
+        Export All Libraries
+    </button>
+</div>
+
+<div class="d-flex flex-row input-group mb-3 align-items-center">
+    <InputFile id="importLibraries" class="form-control" style="max-width:500px;" OnChange="UpdateLibrariesFile" />
+    <button class="btn btn-outline-success" type="button" for="importLibraries" disabled="@(LibrariesFile == null)" @onclick=@(() => ImportLibraries())>
+        Import Libraries
+    </button>
+</div>
+
+<h2>Series</h2>
+
+<div class="d-flex flex-row bd-highlight mb-2">
+    <button class="btn btn-primary" @onclick="ExportSeries">
+        Export All Series
+    </button>
+</div>
+
+<div class="d-flex flex-row input-group mb-3 align-items-center">
+    <InputFile id="importSeries" class="form-control" style="max-width:500px;" OnChange="UpdateSeriesFile" />
+    <button class="btn btn-outline-success" type="button" for="importSeries" disabled="@(LocationsFile == null)" @onclick=@(() => ImportSeries())>
+        Import Series
+    </button>
+</div>
+
+<h2>Locations</h2>
+
+<div class="d-flex flex-row bd-highlight mb-2"> 
+    <button class="btn btn-primary" @onclick="ExportLocations">
+        Export All Locations
+    </button>
+</div>
+
+<div class="d-flex flex-row input-group mb-3 align-items-center">
+    <InputFile id="importLocations" class="form-control" style="max-width:500px;" OnChange="UpdateLocationsFile" />
+    <button class="btn btn-outline-success" type="button" for="importLocations" disabled="@(LocationsFile == null)" @onclick=@(() => ImportLocations())>
+        Import Locations
+    </button>
+</div>
+
+<h2>Medias</h2>
+
+<div class="d-flex flex-row bd-highlight mb-2">
+    <button class="btn btn-primary" @onclick="ExportMedias">
+        Export All Medias
+    </button>
+</div>
+
+<div class="d-flex flex-row input-group mb-3 align-items-center">
+    <InputFile id="importMedias" class="form-control" style="max-width:500px;" OnChange="UpdateMediasFile" />
+    <button class="btn btn-outline-success" type="button" for="importMedias" disabled="@(MediasFile == null)" @onclick=@(() => ImportMedias())>
+        Import Medias
+    </button>
+</div>
+
+<h2>Cookies</h2>
+
+<div class="d-flex flex-row input-group mb-3 align-items-center">
+    <InputFile id="importCookies" class="form-control" style="max-width:500px;" OnChange="UpdateCookiesFile" />
+    <button class="btn btn-outline-success" type="button" for="importCookies" disabled="@(CookiesFile == null)" @onclick=@(() => ImportCookies())>
+        Upload Cookies
+    </button>
+</div>
+
+@code {
+
+    [Inject]
+    private IDbContextFactory<ToothPickContext> ToothPickContextFactory { get; set; } = null!;
+
+    [Inject]
+    private IJSRuntime JSRuntime { get; set; } = null!;
+
+    private ModalPrompt ModalPromptReference = null!;
+
+    private IBrowserFile? LibrariesFile { get; set; } = null;
+    
+    private IBrowserFile? SeriesFile { get; set; } = null;
+
+    private IBrowserFile? LocationsFile { get; set; } = null;
+
+    private IBrowserFile? MediasFile { get; set; } = null;
+
+    private IBrowserFile? CookiesFile { get; set; } = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();     
+    }
+
+    private async void ExportLibraries()
+    {       
+        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();  
+        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(toothPickContext.Libraries.ToArray(), Formatting.Indented));
+        MemoryStream stream = new MemoryStream(byteArray);
+        string fileName = "libraries.json";
+        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private void UpdateLibrariesFile(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        LocationsFile = inputFileChangeEventArgs.File;
+    }
+
+    private async void ImportLibraries()
+    {
+        if (LocationsFile != null)
+        {
+            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();  
+            using StreamReader streamReader = new StreamReader(LocationsFile.OpenReadStream());
+            string librariesString = await streamReader.ReadToEndAsync();
+            IEnumerable<Library>? libraries = JsonConvert.DeserializeObject<IEnumerable<Library>>(librariesString);
+            
+            if (libraries != null)
+            {
+                foreach (Library newLibrary in libraries)
+                {
+                    if (!toothPickContext.Libraries.Any(library => library.Name.Equals(newLibrary.Name)) &&
+                        !toothPickContext.ChangeTracker.Entries<Library>().Any(library => library.Entity.Name.Equals(newLibrary.Name)))
+                    {
+                        toothPickContext.Libraries.Add(newLibrary);
+                    }
+                }
+            }
+
+            if (toothPickContext.ChangeTracker.HasChanges())
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Imported succesfully",
+                    Body = new MarkupString($"<p>Imported libraries file \"{LocationsFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Library>().Count(e => e.State == EntityState.Added)} new libraries!</p>"),
+                    CancelChoice = "Ok"
+                });
+
+                await toothPickContext.SaveChangesAsync();
+            }
+            else
+            {                
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Nothing imported",
+                    Body = new MarkupString($"<p>No new libraries were detected. Nothing was imported.</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+        }
+    }
+    
+    private async void ExportSeries()
+    {
+        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(toothPickContext.Series.ToArray(), Formatting.Indented));
+        MemoryStream stream = new MemoryStream(byteArray);
+        string fileName = "series.json";
+        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private void UpdateSeriesFile(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        SeriesFile = inputFileChangeEventArgs.File;
+    }
+
+    private async void ImportSeries()
+    {
+        if (SeriesFile != null)
+        {
+            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+            using StreamReader streamReader = new StreamReader(SeriesFile.OpenReadStream());
+            string seriesString = await streamReader.ReadToEndAsync();
+            IEnumerable<Series>? series = JsonConvert.DeserializeObject<IEnumerable<Series>>(seriesString);
+
+            if (series != null)
+            {
+                foreach (Series newSerie in series)
+                {
+                    if (toothPickContext.Libraries.Any(library => library.Name.Equals(newSerie.LibraryName)) &&
+                        !toothPickContext.Series.Any(series => series.LibraryName.Equals(newSerie.LibraryName) &&
+                            series.Name.Equals(newSerie.Name)) &&
+                        !toothPickContext.ChangeTracker.Entries<Series>().Any(series => series.Entity.LibraryName.Equals(newSerie.LibraryName) &&
+                            series.Entity.Name.Equals(newSerie.Name)))
+                    {
+                        toothPickContext.Series.Add(newSerie);
+                    }
+                }
+            }
+
+            if (toothPickContext.ChangeTracker.HasChanges())
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Imported succesfully",
+                    Body = new MarkupString($"<p>Imported series file \"{SeriesFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Series>().Count(e => e.State == EntityState.Added)} new series!</p>"),
+                    CancelChoice = "Ok"
+                });
+
+                await toothPickContext.SaveChangesAsync();
+            }
+            else
+            {      
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Nothing imported",
+                    Body = new MarkupString($"<p>No new series were detected. Nothing was imported.</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+        }
+    }
+
+    private async void ExportLocations()
+    {       
+        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(toothPickContext.Locations.ToArray(), Formatting.Indented));
+        MemoryStream stream = new MemoryStream(byteArray);
+        string fileName = "locations.json";
+        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private void UpdateLocationsFile(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        LocationsFile = inputFileChangeEventArgs.File;
+    }
+
+    private async Task ImportLocations()
+    {
+        if (LocationsFile != null)
+        {
+            try
+            {
+                using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+                using StreamReader streamReader = new StreamReader(LocationsFile.OpenReadStream());
+                string locationsString = await streamReader.ReadToEndAsync();
+                IEnumerable<Location>? locations = JsonConvert.DeserializeObject<IEnumerable<Location>>(locationsString);
+
+                if (locations != null)
+                {
+                    foreach (Location newLocation in locations)
+                    {
+                        if (toothPickContext.Libraries.Any(library => library.Name.Equals(newLocation.LibraryName)) && 
+                            toothPickContext.Series.Any(series => series.Name.Equals(newLocation.SeriesName)) && 
+                            !toothPickContext.Locations.Any(location => location.LibraryName.Equals(newLocation.LibraryName) &&
+                                location.SeriesName.Equals(newLocation.SeriesName) &&
+                                location.Url.Equals(newLocation.Url)) &&
+                            !toothPickContext.ChangeTracker.Entries<Location>().Any(location => location.Entity.LibraryName.Equals(newLocation.LibraryName) &&
+                                location.Entity.SeriesName.Equals(newLocation.SeriesName) &&
+                                location.Entity.Url.Equals(newLocation.Url)))
+                        {                
+                            toothPickContext.Locations.Add(newLocation);
+                        }
+                    }
+                }
+                            
+                if (toothPickContext.ChangeTracker.HasChanges())
+                {              
+                    await ModalPromptReference!.ShowModalPrompt(new()
+                    {
+                        Title = "Imported succesfully",
+                        Body = new MarkupString($"<p>Imported locations file \"{LocationsFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Location>().Count(e => e.State == EntityState.Added)} new locations!</p>"),
+                        CancelChoice = "Ok"
+                    });
+
+                    await toothPickContext.SaveChangesAsync();
+                }
+                else
+                {
+                    await ModalPromptReference!.ShowModalPrompt(new()
+                    {
+                        Title = "Nothing imported",
+                        Body = new MarkupString($"<p>No new lcoations were detected. Nothing was imported.</p>"),
+                        CancelChoice = "Ok"
+                    });
+                }            
+            }
+            catch (Exception exception)
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Error during import",
+                    Body = new MarkupString($"<p>Nothing was imported. The following error was encountered: {exception.Message}</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+        }
+    }
+    
+    private async void ExportMedias()
+    {       
+        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+        byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(toothPickContext.Media.ToArray(), Formatting.Indented));
+        MemoryStream stream = new MemoryStream(byteArray);
+        string fileName = "medias.json";
+        using DotNetStreamReference streamReference = new DotNetStreamReference(stream: stream);
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamReference);
+    }
+
+    private void UpdateMediasFile(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        MediasFile = inputFileChangeEventArgs.File;
+    }
+
+    private async void ImportMedias()
+    {
+        if (MediasFile != null)
+        {
+            try
+            {
+                using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();    
+                using StreamReader streamReader = new StreamReader(MediasFile.OpenReadStream(maxAllowedSize: (long)2e+9));
+                string mediasString = await streamReader.ReadToEndAsync();
+                IEnumerable<Media>? medias = JsonConvert.DeserializeObject<IEnumerable<Media>>(mediasString);
+                
+                if (medias != null)
+                {
+                    foreach (Media newMedia in medias)
+                    {
+                        if (toothPickContext.Libraries.Any(library => library.Name.Equals(newMedia.LibraryName)) &&
+                            toothPickContext.Series.Any(series => series.LibraryName.Equals(newMedia.LibraryName) &&
+                                series.Name.Equals(newMedia.SeriesName)) &&
+                            !toothPickContext.Media.Any(media => media.Key.Equals(newMedia.Key)) &&
+                            !toothPickContext.ChangeTracker.Entries<Media>().Any(media => media.Entity.Key.Equals(newMedia.Key)))
+                        {
+                            toothPickContext.Media.Add(newMedia);
+                        }
+                    }
+                }
+
+                if (toothPickContext.ChangeTracker.HasChanges())
+                {
+                    await ModalPromptReference!.ShowModalPrompt(new()
+                    {
+                        Title = "Imported succesfully",
+                        Body = new MarkupString($"<p>Imported libraries file \"{MediasFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Media>().Count(e => e.State == EntityState.Added)} new medias!</p>"),
+                        CancelChoice = "Ok"
+                    });
+                    
+                    await toothPickContext.SaveChangesAsync();
+                }
+                else
+                {
+                    await ModalPromptReference!.ShowModalPrompt(new()
+                    {
+                        Title = "Nothing imported",
+                        Body = new MarkupString($"<p>No new medias were detected. Nothing was imported.</p>"),
+                        CancelChoice = "Ok"
+                    });
+                }
+            }
+            catch (Exception exception)
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Error during import",
+                    Body = new MarkupString($"<p>Nothing was imported. The following error was encountered: {exception.Message}</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+        }
+    }    
+
+    private void UpdateCookiesFile(InputFileChangeEventArgs inputFileChangeEventArgs)
+    {
+        CookiesFile = inputFileChangeEventArgs.File;
+    }
+
+    private async void ImportCookies()
+    {
+        if (CookiesFile != null)
+        {            
+            try
+            {
+                using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();  
+                string cookiesPath = (await toothPickContext.Settings.GetSettingAsync("CookiesPath", CancellationToken.None)).Value;
+
+                using Stream cookiesUploadStream = CookiesFile.OpenReadStream(maxAllowedSize: (long)2e+9);
+                using FileStream cookiesWriterStream = File.Create(Path.Combine(cookiesPath, CookiesFile.Name));
+                
+                await cookiesUploadStream.CopyToAsync(cookiesWriterStream);
+                                
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Uploaded Cookies",
+                    Body = new MarkupString($"<p>The cookies file \"{CookiesFile.Name}\" was succesfully uploaded!</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+            catch (Exception exception)
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Error during upload",
+                    Body = new MarkupString($"<p>The following error was encountered: {exception.Message}</p>"),
+                    CancelChoice = "Ok"
+                });
+            }
+        }
+    }    
+}

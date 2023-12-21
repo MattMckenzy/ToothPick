@@ -2,10 +2,9 @@
 {
     public class Setting
     {
-        [Required]
-        public string Name { get; set; }
+        [Key]
+        public required string Name { get; set; }
 
-        [Required]
-        public string Value { get; set; }
+        public string Value { get; set; } = string.Empty;
     }
 }

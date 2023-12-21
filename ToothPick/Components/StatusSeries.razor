@@ -1,15 +1,15 @@
-﻿@inherits StatusSeriesBase
-
-@if (Statuses != null)
+﻿@if (Statuses != null)
 {
+    <ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
     <ul class="list-group pt-1">        
-        @foreach (KeyValuePair<Serie, Status> keyValuePair in Statuses)
+        @foreach (KeyValuePair<Series, Status> keyValuePair in Statuses)
         {
             <li class="list-group-item bg-light">
                 <div class="d-flex bd-highlight align-items-center">
-                    <div class="p-2 flex-grow-1 bd-highlight">@keyValuePair.Value.Serie.LibraryName / @keyValuePair.Value.Serie.Name</div>
+                    <div class="p-2 flex-grow-1 bd-highlight">@keyValuePair.Value.Series.LibraryName / @keyValuePair.Value.Series.Name</div>
                     <div class="p-2 bd-highlight">
-                        <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => await StopSeriesCallback.InvokeAsync(keyValuePair.Value).ConfigureAwait(false)">
+                        <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => await StopSeries(keyValuePair.Value).ConfigureAwait(false)">
                             <span class="oi oi-x" aria-hidden="true"></span>
                         </button>
                     </div>

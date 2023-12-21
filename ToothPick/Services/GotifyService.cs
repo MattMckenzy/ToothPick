@@ -125,11 +125,14 @@ namespace ToothPick.Services
                     int gotifyAppId = int.TryParse(gotifyAppIdSetting.Value, out int parsedGotifyAppId) ? parsedGotifyAppId : Defaults.GotifyAppId;
 
                     CallResult<string> callResult = await GotifyClientCaller.GetRequestAsync<string>($"application/{gotifyAppId}/message");
-                    return JsonConvert.DeserializeObject<GotifyPagedMessages>(callResult.Content).Messages;
+                    if (callResult.Content != null)
+                        return JsonConvert.DeserializeObject<GotifyPagedMessages>(callResult.Content)?.Messages ?? [];
+                    else
+                        return [];
                 }
             }
             catch (CommunicationException communicationException)
-            {
+            { 
                 Logger.LogError("There was a problem getting all messages on Gotify: {communicationException.Message};{Environment.NewLine}Call stack: {communicationException.StackTrace}",
                     communicationException.Message,
                     Environment.NewLine,
@@ -159,24 +162,24 @@ namespace ToothPick.Services
                     string gotifyAppToken = (await toothPickContext.Settings.GetSettingAsync("GotifyAppToken", cancellationToken)).Value;
 
                     using WatsonWsClient socketClient =
-                        new(new Uri((await GotifyClientCaller.GetEndpoint("/stream", new Dictionary<string, string>() { { "token", gotifyAppToken } })).ToString().Replace("http", "ws")));
+                        new(new Uri((await GotifyClientCaller.GetEndpoint("/stream", queryParameters: new Dictionary<string, string>() { { "token", gotifyAppToken } })).ToString().Replace("http", "ws")));
 
-                    async Task messageReceived(object obj, MessageReceivedEventArgs messageReceivedEventArgs)
+                    async Task messageReceived(object? obj, MessageReceivedEventArgs messageReceivedEventArgs)
                     {
-                        GotifyMessage gotifyMessage = JsonConvert.DeserializeObject<GotifyMessage>(Encoding.UTF8.GetString(messageReceivedEventArgs.Data), new JsonSerializerSettings { CheckAdditionalContent = false });
+                        GotifyMessage? gotifyMessage = JsonConvert.DeserializeObject<GotifyMessage>(Encoding.UTF8.GetString(messageReceivedEventArgs.Data), new JsonSerializerSettings { CheckAdditionalContent = false });
 
-                        if (gotifyMessage.AppId == gotifyAppId)
+                        if (gotifyMessage?.AppId == gotifyAppId)
                             await callBack.Invoke(gotifyMessage);
                     }
 
-                    void reconnect(object obj, EventArgs eventArgs)
+                    void reconnect(object? _, EventArgs? __)
                     {
                         if (!cancellationToken.IsCancellationRequested)
                             socketClient.Start();
                     }
 
                     socketClient.ServerDisconnected += new EventHandler(reconnect);
-                    socketClient.MessageReceived += new EventHandler<MessageReceivedEventArgs>(async (object obj, MessageReceivedEventArgs messageReceivedEventArgs) => await messageReceived(obj, messageReceivedEventArgs));
+                    socketClient.MessageReceived += new EventHandler<MessageReceivedEventArgs>(async (object? obj, MessageReceivedEventArgs messageReceivedEventArgs) => await messageReceived(obj, messageReceivedEventArgs));
                     reconnect(null, null);
 
                     while (!cancellationToken.IsCancellationRequested)
@@ -216,17 +219,20 @@ namespace ToothPick.Services
                 LogLevel.Error => 8,
                 LogLevel.Warning => 5,
                 LogLevel.Information => 2,
-                _ => 0,
+                LogLevel.Debug => 1,
+                LogLevel.Trace or _ => 0
             };
         }
-        public LogLevel GetLogLevel(int priority)
+        public LogLevel GetLogLevel(int? priority)
         {
             return priority switch
             { 
-                8 or 9 =>  LogLevel.Critical,
-                5 or 6 or 7 => LogLevel.Error,
-                2 or 3 or 4 =>  LogLevel.Warning,
-                _ or 0 or 1 => LogLevel.Information
+                9 =>  LogLevel.Critical,
+                8 => LogLevel.Error,
+                5 or 6 or 7 =>  LogLevel.Warning,
+                2 or 3 or 4 => LogLevel.Information,
+                1 => LogLevel.Debug,
+                0 or _ => LogLevel.Trace
             };
         }
     }

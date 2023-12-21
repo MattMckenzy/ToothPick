@@ -8,31 +8,46 @@
         /// <summary>
         /// The modal's title.
         /// </summary>
-        public string Title { get; set; } = string.Empty;
+        public required string Title { get; set; }
 
         /// <summary>
         /// The modal's body.
         /// </summary>
-        public MarkupString Body { get; set; } = new();
+        public MarkupString? Body { get; set; }
 
         /// <summary>
         /// The text displayed on the dismiss button of the modal.
         /// </summary>
-        public string CancelChoice { get; set; } = string.Empty;
+        public string? CancelChoice { get; set; }
 
         /// <summary>
         /// The text displayed on the accept button of the modal.
         /// </summary>
-        public string Choice { get; set; } = string.Empty;
+        public string? Choice { get; set; }
 
         /// <summary>
         /// The bootstrap color of the choice button.
         /// </summary>
-        public string ChoiceColour { get; set; } = string.Empty;
+        public string? ChoiceColour { get; set; }
 
         /// <summary>
         /// The delegate <see cref="Action"/> that is invoked when the accept button is chosen.
         /// </summary>
-        public Action ChoiceAction { get; set; } = null;
+        public Action? ChoiceAction { get; set; }
+
+        /// <summary>
+        /// The text displayed on the other accept button of the modal.
+        /// </summary>
+        public string? OtherChoice { get; set; }
+
+        /// <summary>
+        /// The bootstrap color of the other choice button.
+        /// </summary>
+        public string? OtherChoiceColour { get; set; }
+
+        /// <summary>
+        /// The delegate <see cref="Action"/> that is invoked when the other accept button is chosen.
+        /// </summary>
+        public Action? OtherChoiceAction { get; set; }
     }
 }

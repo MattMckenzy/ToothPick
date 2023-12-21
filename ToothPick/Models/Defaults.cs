@@ -15,18 +15,21 @@
         /// </summary>
         public static readonly Dictionary<string, string> Settings = new()
         {
+            { "CookiesPath", "/ToothPick/Cookies" },
+            { "DownloadPath", "/ToothPick/Media" },
+            { "GotifyAppId", "" },
+            { "GotifyAppToken", "" },
+            { "GotifyClientToken", "" },
+            { "GotifyHeader", "X-Gotify-Key" },
+            { "GotifyLogLevel", "2" },
+            { "GotifyUri", "" },
+            { "NewSeriesFetchCountOverride", "1" },
+            { "ParallelDownloads","4" },
+            { "ParallelFetch", "4" },
+            { "ScanDelayMinutes", "10" },
             { "ToothPickEnabled", "True" },
             { "UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"  },
-            { "ParallelFetch", "4" },
-            { "ParallelDownloads","4" },
-            { "ScanDelayMinutes", "10" },
-            { "NewSeriesFetchCountOverride", "1" },
-            { "GotifyClientToken", "" },
-            { "GotifyAppToken", "" },
-            { "GotifyAppId", "" },
-            { "GotifyUri", "" },
-            { "GotifyHeader", "X-Gotify-Key" },
-            { "GotifyLogLevel", "2" }
+            { "TotalRateLimitMBPS", "" }
         };
     }
 }

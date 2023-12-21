@@ -1,0 +1,123 @@
+﻿<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+@if (IsLoading)
+{
+    <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+
+<div hidden="@IsLoading">
+    <CollectionControl IsUpdating=@IsUpdating 
+        OrderingFieldCallback=SelectSeriesOrder 
+        IsAscending=@IsAscending 
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedSeriesOrder
+        FilteringCallback=FilterSeries 
+        FilterValues=@Filters/>
+
+    <div class="series">
+
+        @if (SeriesKeys != null)
+        {
+            <EntitySidebar Title="Series"
+                Items=@SeriesKeys
+                Categories=@CategoryKeys
+                CreateCallback=CreateSeries
+                CreateTitle="Create Series"
+                DeleteCallback=DeleteSeries
+                DeleteTitle="Delete Series"
+                LoadCallback=LoadSeries
+                CurrentItem=@CurrentSeries.DbKey></EntitySidebar>
+        } 
+
+        <div class="main mb-3">
+            @if (CurrentSeriesKeyLocked)
+            {
+                <div class="mb-3 d-flex align-items-center justify-content-around">
+                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
+                        href="/libraries?Filters=Name:@(CurrentSeries.LibraryName)">Go to Series' Library
+                    </a>
+                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
+                        href="/locations?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Series' Locations
+                    </a>
+                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
+                        href="/media?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Series' Media
+                    </a>
+                </div>
+            }
+            <div class="mb-3">
+                <label for="library" class="form-label">Library</label>
+                <select class="form-select @(CurrentSeriesKeyLocked ? "readonly disabled" : (string.IsNullOrWhiteSpace(LibraryNameFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid"))" 
+                    id="library" required=@(!CurrentSeriesKeyLocked) readonly=@CurrentSeriesKeyLocked disabled=@CurrentSeriesKeyLocked aria-describedby="libraryNameFeedback"
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.LibraryName), changeEventArgs.Value!))>
+                    <option selected="@(!LibraryCollection.Any(library => CurrentSeries.LibraryName == library.Name))" class="enter-next" value="" disabled>Select...</option>
+                    @foreach (Library library in LibraryCollection)
+                    {
+                        <option selected="@(CurrentSeries.LibraryName == library.Name)" class="enter-next" value="@library.Name">
+                            @library.Name
+                        </option>
+                    }
+                </select>
+                <div id="libraryNameFeedback" class="invalid-feedback">
+                    @LibraryNameFeedback
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input class="form-control enter-next @(CurrentSeriesKeyLocked ? "readonly disabled" : (string.IsNullOrWhiteSpace(NameFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid"))"
+                       type="text" id="name" value="@CurrentSeries.Name" required=@(!CurrentSeriesKeyLocked) readonly=@CurrentSeriesKeyLocked disabled=@CurrentSeriesKeyLocked aria-describedby="nameFeedback"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.Name), changeEventArgs.Value!)) />
+                <div id="nameFeedback" class="invalid-feedback">
+                    @NameFeedback
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <input class="form-control enter-next" type="text" id="description" value="@CurrentSeries.Description"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.Description), changeEventArgs.Value!)) />
+            </div> 
+            <div class="mb-3">
+                <label for="thumbnailLocation" class="form-label">Thumbnail Location</label>
+                <input class="form-control enter-next @(string.IsNullOrWhiteSpace(ThumbnailLocationFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       id="thumbnailLocation" value="@CurrentSeries.ThumbnailLocation" type="text"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.ThumbnailLocation), changeEventArgs.Value!)) />
+                <div id="thumbnailLocationFeedback" class="invalid-feedback">
+                    @ThumbnailLocationFeedback
+                </div> 
+            </div>       
+            <div class="mb-3">
+                <label for="posterLocation" class="form-label">Poster Location</label>
+                <input class="form-control enter-next @(string.IsNullOrWhiteSpace(PosterLocationFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       id="posterLocation" value="@CurrentSeries.PosterLocation" type="text"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.PosterLocation), changeEventArgs.Value!)) />
+                <div id="posterLocationFeedback" class="invalid-feedback">
+                    @PosterLocationFeedback
+                </div>
+            </div>     
+            <div class="mb-3">
+                <label for="bannerLocation" class="form-label">Banner Location</label>
+                <input class="form-control enter-next @(string.IsNullOrWhiteSpace(BannerLocationFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       id="bannerLocation" value="@CurrentSeries.BannerLocation" type="text"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.BannerLocation), changeEventArgs.Value!)) />
+                <div id="bannerLocationFeedback" class="invalid-feedback">
+                    @BannerLocationFeedback
+                </div>
+            </div>     
+            <div class="mb-3">
+                <label for="logoLocation" class="form-label">Logo Location</label>
+                <input class="form-control enter-next @(string.IsNullOrWhiteSpace(LogoLocationFeedback) ? (CurrentSeriesIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       id="logoLocation" value="@CurrentSeries.LogoLocation" type="text"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Series.LogoLocation), changeEventArgs.Value!)) />
+                <div id="logoLocationFeedback" class="invalid-feedback">
+                    @LogoLocationFeedback
+                </div>
+            </div>
+            <div>
+                <button id="saveButton" class="btn btn-success @(!CurrentSeriesIsValid || !CurrentSeriesIsDirty ? "disabled" : string.Empty)" @onclick="SaveSeries" disabled="@(!CurrentSeriesIsValid || !CurrentSeriesIsDirty)">
+                    Save Series
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

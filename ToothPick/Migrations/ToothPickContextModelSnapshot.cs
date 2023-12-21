@@ -36,25 +36,32 @@ namespace ToothPick.Migrations
                     b.Property<string>("LibraryName")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("SerieName")
+                    b.Property<string>("SeriesName")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Url")
+                    b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Cookies")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("DownloadFormat")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("FetchCount")
+                    b.Property<int?>("FetchCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("MatchFilters")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LibraryName", "SerieName", "Url");
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("LibraryName", "SeriesName", "Name");
 
                     b.ToTable("Locations");
                 });
@@ -64,7 +71,7 @@ namespace ToothPick.Migrations
                     b.Property<string>("LibraryName")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("SerieName")
+                    b.Property<string>("SeriesName")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Location")
@@ -74,6 +81,7 @@ namespace ToothPick.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<float?>("Duration")
@@ -90,18 +98,19 @@ namespace ToothPick.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ThumbnailLocation")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LibraryName", "SerieName", "Location");
+                    b.HasKey("LibraryName", "SeriesName", "Location");
 
-                    b.ToTable("Medias");
+                    b.ToTable("Media");
                 });
 
-            modelBuilder.Entity("ToothPick.Models.Serie", b =>
+            modelBuilder.Entity("ToothPick.Models.Series", b =>
                 {
                     b.Property<string>("LibraryName")
                         .HasColumnType("TEXT");
@@ -110,27 +119,23 @@ namespace ToothPick.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("BannerLocation")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DatePublished")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("EpisodeCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("LogoLocation")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PosterLocation")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("SeasonCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("ThumbnailLocation")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("LibraryName", "Name");
@@ -160,15 +165,15 @@ namespace ToothPick.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ToothPick.Models.Serie", "Serie")
+                    b.HasOne("ToothPick.Models.Series", "Series")
                         .WithMany("Locations")
-                        .HasForeignKey("LibraryName", "SerieName")
+                        .HasForeignKey("LibraryName", "SeriesName")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Library");
 
-                    b.Navigation("Serie");
+                    b.Navigation("Series");
                 });
 
             modelBuilder.Entity("ToothPick.Models.Media", b =>
@@ -179,18 +184,18 @@ namespace ToothPick.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ToothPick.Models.Serie", "Serie")
+                    b.HasOne("ToothPick.Models.Series", "Series")
                         .WithMany("Medias")
-                        .HasForeignKey("LibraryName", "SerieName")
+                        .HasForeignKey("LibraryName", "SeriesName")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Library");
 
-                    b.Navigation("Serie");
+                    b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("ToothPick.Models.Serie", b =>
+            modelBuilder.Entity("ToothPick.Models.Series", b =>
                 {
                     b.HasOne("ToothPick.Models.Library", "Library")
                         .WithMany("Series")
@@ -210,7 +215,7 @@ namespace ToothPick.Migrations
                     b.Navigation("Series");
                 });
 
-            modelBuilder.Entity("ToothPick.Models.Serie", b =>
+            modelBuilder.Entity("ToothPick.Models.Series", b =>
                 {
                     b.Navigation("Locations");
 

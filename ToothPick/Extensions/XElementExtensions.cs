@@ -15,7 +15,7 @@
             for (int i = 0; i < fullQueueCOunt; i++)
             {
                 string node = nodes.Dequeue();
-                XElement firstChildMatch = element.Elements(node).FirstOrDefault();
+                XElement? firstChildMatch = element.Elements(node).FirstOrDefault();
                 if (firstChildMatch == null)
                 {
                     XElement newChlid = new XElement(node);

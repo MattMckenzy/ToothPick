@@ -20,7 +20,7 @@ namespace ToothPick.Components
         #region Parameters
 
         [CascadingParameter(Name = nameof(ItemKey))]
-        public string ItemKey { get; set; }
+        public string? ItemKey { get; set; }
 
         #endregion
 
@@ -29,13 +29,13 @@ namespace ToothPick.Components
         private bool IsLoading { get; set; } = true;
 
         private IEnumerable<Setting> Settings { get; set; } = Array.Empty<Setting>();
-        private Dictionary<string, string> SettingKeys { get; set; }
+        private Dictionary<string, string>? SettingKeys { get; set; }
 
-        private Setting CurrentSetting { get; set; } = null;
+        private Setting? CurrentSetting { get; set; } = null;
         private bool CurrentSettingIsValid = false;
         private bool CurrentSettingIsDirty = false;
 
-        private ModalPrompt ModalPromptReference = null;
+        private ModalPrompt ModalPromptReference = null!;
 
         #endregion
 
@@ -71,7 +71,7 @@ namespace ToothPick.Components
             if (settingKey.Equals(CurrentSetting?.Name, StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            Setting setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
+            Setting? setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
 
             if (setting == null)
                 return;
@@ -111,7 +111,7 @@ namespace ToothPick.Components
             await ModalPromptReference!.ShowModalPrompt(new()
             {
                 Title = "Settings",
-                Body = new MarkupString($"<p>Save the setting \"{CurrentSetting.Name}\"?</p>"),
+                Body = new MarkupString($"<p>Saved the setting \"{CurrentSetting.Name}\"!</p>"),
                 CancelChoice = "Dismiss"
             });
 
@@ -120,7 +120,7 @@ namespace ToothPick.Components
 
         private async Task DeleteSetting(string settingKey)
         {
-            Setting setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
+            Setting? setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
 
             if (setting == null)
                 return;
@@ -175,7 +175,7 @@ namespace ToothPick.Components
             await InvokeAsync(StateHasChanged);
         }
 
-        private static bool CompareSettings(Setting setting1, Setting setting2)
+        private static bool CompareSettings(Setting? setting1, Setting? setting2)
         {
             if (setting1 == null || setting2 == null)
                 return false;

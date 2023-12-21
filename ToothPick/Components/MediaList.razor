@@ -1,0 +1,96 @@
+﻿<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+@if (IsLoading)
+{
+    <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+
+<div hidden="@IsLoading">
+    <CollectionControl IsUpdating=@IsUpdating 
+        OrderingFieldCallback=SelectMediaOrder 
+        IsAscending=@IsAscending 
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedMediaOrder
+        FilteringCallback=FilterMedia 
+        FilterValues=@Filters/>
+
+    <div class="media">
+
+        @if (MediaKeys != null)
+        {
+            <EntitySidebar Title="Media"
+                Items=@MediaKeys
+                Categories=@CategoryKeys
+                LoadCallback=LoadMedia
+                CurrentItem=@CurrentMedia.DbKey
+                DeleteTitle="Delete Media"
+                DeleteCallback=DeleteMedia
+                UseSuperCategories=true>
+            </EntitySidebar>
+        } 
+
+        @if (CurrentMedia != null)
+        {
+            <div class="main mb-3">
+                <div class="mb-3 d-flex align-items-center justify-content-around">
+                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
+                        href="/libraries?Filters=Name:@(CurrentMedia.LibraryName)">Go to Media's Library
+                    </a>                    
+                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
+                        href="/series?Filters=LibraryName:@(CurrentMedia.LibraryName);Name:@(CurrentMedia.SeriesName)">Go to Media's Series
+                    </a>
+                </div>                
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Library Name</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.LibraryName" readonly disabled />
+                </div>      
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Series Name</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.SeriesName" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Location</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Location" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Title</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Title" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Location</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Location" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Key</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Key" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Description</label>
+                    <textarea class="form-control readonly disabled" rows="10" id="libraryName" value="@CurrentMedia.Description" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">SeasonNumber</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.SeasonNumber" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">EpisodeNumber</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.EpisodeNumber" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Duration</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Duration" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">ThumbnailLocation</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.ThumbnailLocation" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">DatePublished</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.DatePublished" readonly disabled />
+                </div>
+            </div>
+        }
+    </div>
+</div>

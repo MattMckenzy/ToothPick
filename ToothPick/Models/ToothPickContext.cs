@@ -3,57 +3,42 @@
     public class ToothPickContext : DbContext
     {
         public DbSet<Library> Libraries { get; set; }
-        public DbSet<Serie> Series { get; set; }
+        public DbSet<Series> Series { get; set; }
         public DbSet<Location> Locations { get; set; }
-        public DbSet<Media> Medias { get; set; }
+        public DbSet<Media> Media { get; set; }
         public DbSet<Setting> Settings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Serie>()
-                .HasKey(serie => new { serie.LibraryName, serie.Name });
-
-            modelBuilder.Entity<Serie>()
-                .HasOne(serie => serie.Library)
+            modelBuilder.Entity<Series>()
+                .HasOne(series => series.Library)
                 .WithMany(library => library.Series)
-                .HasForeignKey(serie => serie.LibraryName);
-
-
-            modelBuilder.Entity<Media>()
-                .HasKey(media => new { media.LibraryName, media.SerieName, media.Location });
+                .HasForeignKey(series => series.LibraryName);
 
             modelBuilder.Entity<Media>()
-                .HasOne(media => media.Serie)
-                .WithMany(serie => serie.Medias)
-                .HasForeignKey(media => new { media.LibraryName, media.SerieName });
+                .HasOne(media => media.Series)
+                .WithMany(series => series.Medias)
+                .HasForeignKey(media => new { media.LibraryName, media.SeriesName });
 
             modelBuilder.Entity<Media>()
                 .HasOne(media => media.Library)
                 .WithMany(library => library.Medias)
                 .HasForeignKey(media => media.LibraryName);
 
+            modelBuilder.Entity<Location>()
+                .HasOne(location => location.Series)
+                .WithMany(series => series.Locations)
+                .HasForeignKey(location => new { location.LibraryName, location.SeriesName });
 
             modelBuilder.Entity<Location>()
-                .HasKey(location => new { location.LibraryName, location.SerieName, location.Url });
-
-            modelBuilder.Entity<Location>()
-                .HasOne(location => location.Serie)
-                .WithMany(serie => serie.Locations)
-                .HasForeignKey(location => new { location.LibraryName, location.SerieName });
-
-            modelBuilder.Entity<Location>() 
                 .HasOne(location => location.Library)
                 .WithMany(library => library.Locations)
                 .HasForeignKey(location => location.LibraryName);
-
-
-            modelBuilder.Entity<Setting>()
-                .HasKey(setting => new { setting.Name });
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            FileInfo databaseDestinationFileInfo = new("/root/ToothPick/data/toothpick.db");
+            FileInfo databaseDestinationFileInfo = new("/ToothPick/data/toothpick.db");
 
             optionsBuilder
                 .UseLazyLoadingProxies()

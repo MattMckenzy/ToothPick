@@ -92,3 +92,9 @@ function focusNext(event) {
     const targetIndex = (currentIndex + 1) % allElements.length;
     allElements[targetIndex].focus();
 };
+
+function expand(elementId) {
+    var element = document.getElementById(elementId);
+    var bootstrapInstance = bootstrap.Collapse.getOrCreateInstance(element);
+    bootstrapInstance.show();
+}

@@ -211,11 +211,7 @@ UpgradeLog*.XML
 UpgradeLog*.htm
 
 # SQL Server files
-*.mdf
-*.ldf
-
-# Business Intelligence projects
-*.rdl.data
+*.mono
 *.bim.layout
 *.bim_*.settings
 
@@ -260,12 +256,6 @@ paket-files/
 __pycache__/
 *.pyc
 /Build
-/ToothPick/appsettings.Debug.json
-/ToothPick/appsettings.Development.json
-/ToothPick/appsettings.Release.json
-/ToothPick/appsettings.Production.json
-/ToothPick/resources/chromedriver
-*.zip
-/ToothPick/Media
-/ToothPick/cookies
-/ToothPick/resources
+
+# User defined ignores.
+.mono

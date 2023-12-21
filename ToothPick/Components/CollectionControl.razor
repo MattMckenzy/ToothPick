@@ -8,10 +8,10 @@
             <div class="input-group">
 
                 <select class="form-select" id="sortSelect"
-                        @onchange=@(async (ChangeEventArgs changeEventArgs) => await OrderingFieldCallback(Enum.Parse<TFieldEnum>((string)changeEventArgs.Value!)))>
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await OrderingFieldCallback(Enum.Parse<TFieldEnum>((string)changeEventArgs.Value!)))>
                     @foreach (TFieldEnum orderingField in Enum.GetValues<TFieldEnum>())
                     {
-                        <option value="@orderingField" selected="@(SelectedOrderingField.Equals(orderingField))">@orderingField.ToString())</option>
+                        <option value="@orderingField" selected="@(SelectedOrderingField.Equals(orderingField))">@orderingField.GetDisplayName()</option>
                     }
                 </select>
 
@@ -47,7 +47,7 @@
                         @foreach (TFieldEnum filteringField in Enum.GetValues<TFieldEnum>())
                         {
                             <div class="mb-2">
-                                <label class="mb-1" for="filterBox">filteringField.ToString()</label>
+                                <label class="mb-1" for="filterBox">@filteringField.GetDisplayName()</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="filterBox-@filteringField.ToString()" value=@FilterValues[filteringField.ToString()]
                                        @oninput=@(async (ChangeEventArgs changeEventArgs) => await Helpers.DelayCancel(FilterUpdate, filteringField.ToString(), (string)changeEventArgs.Value!)) />

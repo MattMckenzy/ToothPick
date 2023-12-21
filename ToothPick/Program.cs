@@ -1,6 +1,5 @@
 global using System;
 global using System.ComponentModel.DataAnnotations;
-global using System.Diagnostics.Contracts;
 global using System.IO;
 global using System.Collections.Concurrent;
 global using System.Collections.Generic;
@@ -15,6 +14,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using System.Web;
 global using System.Xml.Linq;
+global using System.Linq.Dynamic.Core;
 
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Components;
@@ -23,6 +23,7 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.JSInterop;
 
 global using ToothPick.Components;
 global using ToothPick.Exceptions;
@@ -40,7 +41,7 @@ webApplicationBuilder.Configuration
     .AddEnvironmentVariables()
     .Build();
 
-// Add services to the container.
+// Add services to the container.1
 webApplicationBuilder.Services.AddDbContextFactory<ToothPickContext>();
 
 webApplicationBuilder.Services.AddRazorPages();

@@ -48,7 +48,10 @@
                 "target": "base",
                 "dockerfile": "${workspaceFolder}/ToothPick/Dockerfile",
                 "context": "${workspaceFolder}",
-                "pull": true
+                "pull": true,
+                "buildArgs":{
+                    "CONFIG": "Debug"
+                }
             },
             "netCore": {
                 "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj"
@@ -68,7 +71,10 @@
                     "os": "linux",
                     "architecture": "amd64"
                 },
-                "pull": true
+                "pull": true,
+                "buildArgs":{
+                    "CONFIG": "Release"
+                }
             },
             "netCore": {
                 "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj"
@@ -82,8 +88,9 @@
             ],
             "dockerRun": {
                 "volumes": [ 
-                    { "localPath": "${userHome}/Working/ToothPick/Data", "containerPath": "/root/ToothPick/data" },
-                    { "localPath": "${userHome}/Working/ToothPick/Media", "containerPath": "/root/ToothPick/Media"} 
+                    { "localPath": "${userHome}/Working/ToothPick/Data", "containerPath": "/ToothPick/data" },
+                    { "localPath": "${userHome}/Working/ToothPick/Media", "containerPath": "/ToothPick/Media"},
+                    { "localPath": "${userHome}/Working/ToothPick/Cookies", "containerPath": "/ToothPick/Cookies"} 
                 ],
                 "env": {
                     "ASPNETCORE_ENVIRONMENT": "Development",

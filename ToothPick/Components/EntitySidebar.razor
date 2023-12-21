@@ -14,72 +14,77 @@
 
                 @if (Categories != null)
                 {
-                    string lastSuperCategory = null;
+                    string? lastSuperCategory = null;
                     CategoryKeys.Clear();
                     @foreach (KeyValuePair<string, IEnumerable<string>> category in Categories)
                     {
-                        string currentSuperCategory = string.Empty, currentCategory = string.Empty;
-                        if (UseSuperCategories)
-                        {
-                            currentSuperCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
-                            currentCategory = category.Key.Length > currentSuperCategory.Length ? category.Key.Substring(currentSuperCategory.Length + 1) : string.Empty;
+                        List<KeyValuePair<string, string?>> categoryItems = category.Value
+                            .Select(key => new KeyValuePair<string, string?>(key, Items.TryGetValue(key, out string? itemValue) ? itemValue : null))
+                            .Where(keyValuePair => keyValuePair.Value != null).ToList();
 
-                            if (!currentSuperCategory.Equals(lastSuperCategory) && !currentSuperCategory.Equals(currentCategory))
+                        @if (categoryItems.Any())
+                        {
+                            string currentSuperCategory = string.Empty, currentCategory = string.Empty;
+                            if (UseSuperCategories)
                             {
-                                lastSuperCategory = currentSuperCategory;
-                                <li class="mb-1">
-                                    <u class="text-start pe-none opacity-75">
-                                        @if (string.IsNullOrWhiteSpace(currentSuperCategory))
-                                        {
-                                            <i>None</i>
-                                        }
-                                        else
-                                        {
-                                            @currentSuperCategory
-                                        }
-                                    </u>
-                                </li>
-                            }
-                        }
-                        else
-                        {
-                            currentCategory = category.Key;
-                        }
-                        string categoryId = $"{currentSuperCategory.GetHashCode()}-{currentCategory.GetHashCode()}";
-                        CategoryKeys.Add(categoryId, category.Value);
+                                currentSuperCategory = category.Key.Split(".", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+                                currentCategory = category.Key.Length > currentSuperCategory.Length ? category.Key.Substring(currentSuperCategory.Length + 1) : string.Empty;
 
-                        <li class="my-1">
-                            <button class="btn btn-category rounded collapsed text-start text-truncate mw-100 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#collapse-@categoryId" aria-expanded="false">
-                                <i class="oi oi-chevron-right pe-1"></i>
-                                @if (string.IsNullOrWhiteSpace(currentCategory))
+                                if (!currentSuperCategory.Equals(lastSuperCategory) && !currentSuperCategory.Equals(currentCategory))
                                 {
-                                    <i>None</i>
-                                }
-                                else
-                                {
-                                    @currentCategory
-                                }
-                            </button>
-                            <div class="collapse" id="collapse-@categoryId">
-                                <ul class="list-unstyled fw-normal pb-1 small">
-
-                                    <Virtualize Items="category.Value
-                                        .Select(key => new KeyValuePair<string, string>(key, Items.TryGetValue(key, out string itemValue) ? itemValue : null))
-                                        .Where(keyValuePair => keyValuePair.Value != null).ToList()" Context="item">
-                                        <li class="container-fluid">
-                                            <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync(item.Key))>
-                                                <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate opacity-75 @(CurrentItem == item.Key ? "selected" : string.Empty)">@item.Value</button>
-                                            </div>
-                                            @if(DeleteCallback.HasDelegate)
+                                    lastSuperCategory = currentSuperCategory;
+                                    <li class="mb-1">
+                                        <u class="text-start pe-none opacity-75">
+                                            @if (string.IsNullOrWhiteSpace(currentSuperCategory))
                                             {
-                                                <EntitySidebarDeleteButton ItemKey=@item.Key DeleteCallback=@DeleteCallback DeleteTitle=@DeleteTitle />
+                                                <i>None</i>
                                             }
-                                        </li>
-                                    </Virtualize>
+                                            else
+                                            {
+                                                @currentSuperCategory
+                                            }
+                                        </u>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                currentCategory = category.Key;
+                            }
+                            string categoryId = $"{currentSuperCategory.GetHashCode()}-{currentCategory.GetHashCode()}";
+                            CategoryKeys.Add(categoryId, category.Value);
 
-                                </ul>
-                            </div>
-                        </li>
+                            <li class="my-1">
+                                <button class="btn btn-category rounded collapsed text-start text-truncate mw-100 d-flex align-items-center" data-bs-toggle="collapse" data-bs-target="#collapse-@categoryId" aria-expanded="false">
+                                    <i class="oi oi-chevron-right pe-1"></i>
+                                    @if (string.IsNullOrWhiteSpace(currentCategory))
+                                    {
+                                        <i>None</i>
+                                    }
+                                    else
+                                    {
+                                        @currentCategory
+                                    }
+                                </button>
+                                <div class="collapse" id="collapse-@categoryId">
+                                    <ul class="list-unstyled fw-normal pb-1 small">
+
+                                        <Virtualize Items="categoryItems" Context="item">
+                                            <li class="container-fluid">
+                                                <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync(item.Key))>
+                                                    <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate opacity-75 @(CurrentItem == item.Key ? "selected" : string.Empty)">@item.Value</button>
+                                                </div>
+                                                @if(DeleteCallback.HasDelegate)
+                                                {
+                                                    <EntitySidebarDeleteButton ItemKey=@item.Key DeleteCallback=@DeleteCallback DeleteTitle=@DeleteTitle />
+                                                }
+                                            </li>
+                                        </Virtualize>
+
+                                    </ul>
+                                </div>
+                            </li>
+                        }                       
                     }
                 }
                 else
@@ -109,13 +114,13 @@
     public required Dictionary<string, string> Items { get; set; } = null!;
 
     [Parameter]
-    public Dictionary<string, IEnumerable<string>> Categories { get; set; } = null;
+    public Dictionary<string, IEnumerable<string>>? Categories { get; set; } = null;
 
     [Parameter]
     public bool UseSuperCategories { get; set; } = false;
 
     [Parameter]
-    public string CurrentItem { get; set; } = null;
+    public string? CurrentItem { get; set; } = null;
 
     [Parameter]
     public EventCallback<string> DeleteCallback { get; set; }

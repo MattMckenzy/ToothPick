@@ -1,4 +1,5 @@
-﻿@inherits StatusProgressBase
+﻿
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
 <ul class="list-group">
     <li class="list-group-item bg-light">
@@ -34,7 +35,7 @@
             @if (Enabled)
             {
                 <div class="p-2 bd-highlight">
-                    <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => { if (TotalProcessingSeries > 0) await StopProcessingCallback.InvokeAsync(ProcessingCancellationTokenSource).ConfigureAwait(false); else await StopWaitingCallback.InvokeAsync(ProcessingCancellationTokenSource).ConfigureAwait(false); }">
+                    <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => { if (TotalProcessingSeries > 0) await StopProcessing(); else await StopWaiting(); }">
                         <span class="oi oi-x" aria-hidden="true"></span>
                     </button>
                 </div>

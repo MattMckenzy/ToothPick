@@ -9,17 +9,17 @@
         /// <summary>
         /// Provides the communication request.
         /// </summary>
-        public string Request { get; set; }
+        public string? Request { get; set; }
 
         /// <summary>
         /// Provides the status code of the communication exception.
         /// </summary>
-        public HttpStatusCode StatusCode { get; set; }
+        public HttpStatusCode? StatusCode { get; set; }
 
         /// <summary>
         /// Provides the reason phrase of the communication exception.
         /// </summary>
-        public string ReasonPhrase { get; set; }
+        public string? ReasonPhrase { get; set; }
 
         /// <summary>
         /// Default constructor.

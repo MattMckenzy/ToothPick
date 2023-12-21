@@ -3,9 +3,9 @@
 @inject ToothPickContext ToothPickContext
 @inject NavigationManager NavigationManager
 
-<h2>Settings</h2>
-  
 <PageTitle>ToothPick - Settings</PageTitle>
+
+<h2>Settings</h2>  
 
 <CascadingValue Name="@nameof(ItemKey)" Value="@ItemKey">
     <SettingsList />
@@ -14,5 +14,5 @@
 @code {
     [Parameter]
     [SupplyParameterFromQuery(Name = nameof(ItemKey))]
-    public string ItemKey { get; set; } 
+    public string? ItemKey { get; set; } 
 }

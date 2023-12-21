@@ -40,13 +40,13 @@
 
     private bool IsDropDownVisisble { get; set; }
 
-    private string SelectedText { get; set; }
+    private string? SelectedText { get; set; }
 
     [JSInvokable]
     public async void SelectInvokable(string key)
     {
         if (Enum.TryParse<TEnum>(key, out TEnum enumKey) &&
-            Options.TryGetValue(enumKey, out string value) &&
+            Options.TryGetValue(enumKey, out string? value) &&
             value != null)
         {
             await Select(new KeyValuePair<TEnum, string>(enumKey, value));

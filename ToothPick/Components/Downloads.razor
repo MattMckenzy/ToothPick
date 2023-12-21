@@ -1,9 +1,7 @@
-﻿@inherits DownloadsBase
-
-<ul class="list-group">
+﻿<ul class="list-group">
     @{
         int index = 0;
-        @foreach (KeyValuePair<Media, Download> keyValuePair in Downloads)
+        @foreach (KeyValuePair<Media, Download> keyValuePair in DownloadList)
         {
             index++;
             <DownloadItem @key="keyValuePair.Key" Media="keyValuePair.Key" Download="keyValuePair.Value" Index="index" />

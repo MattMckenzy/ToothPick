@@ -1,12 +1,13 @@
 ﻿@inject DownloadsService DownloadsService
 @inject IJSRuntime JSRuntime
-@inherits DownloadItemBase 
+
+<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
 <li class="list-group-item bg-light">
     <div class="d-flex bd-highlight align-items-center">
-        <div class="p-2 flex-grow-1 bd-highlight overflow-hidden text-truncate">@Media.LibraryName / @Media.SerieName / @Media.Title @(Media.DatePublished != null ? $"({Media.DatePublished.ToString()})" : string.Empty)</div>
+        <div class="p-2 flex-grow-1 bd-highlight overflow-hidden text-truncate">@Media.LibraryName / @Media.SeriesName / @(string.IsNullOrWhiteSpace(Media.Title) ? Media.Location : Media.Title) @(Media.DatePublished != null ? $"({Media.DatePublished.ToString()})" : string.Empty)</div>
         <div class="p-2 bd-highlight">
-            <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => await SaveTrackingCallback.InvokeAsync(Download).ConfigureAwait(false)">
+            <button class="btn btn-danger" type="button" style="background-color:#d9534f;" data-toggle="modal" @onclick="async () => await CancelDownload(Download)">
                 <span class="oi oi-x" aria-hidden="true"></span>
             </button>
         </div>

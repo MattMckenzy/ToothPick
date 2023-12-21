@@ -14,6 +14,10 @@
                 {
                     <button type="button" class="btn btn-@ModalPromptContext?.ChoiceColour btn-sm me-2" data-bs-dismiss="modal" @onclick=ModalPromptContext?.ChoiceAction!>@ModalPromptContext?.Choice</button>
                 }
+                @if (ModalPromptContext?.OtherChoiceAction != null)
+                {
+                    <button type="button" class="btn btn-@ModalPromptContext?.OtherChoiceColour btn-sm me-2" data-bs-dismiss="modal" @onclick=ModalPromptContext?.OtherChoiceAction!>@ModalPromptContext?.OtherChoice</button>
+                }
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">@ModalPromptContext?.CancelChoice</button>
             </div>
         </div>
@@ -24,7 +28,7 @@
     [Inject]
     public IJSRuntime JSRuntime { get; set; } = null!;
 
-    private ModalPromptContext ModalPromptContext { get; set; } = null;
+    private ModalPromptContext? ModalPromptContext { get; set; } = null;
 
     private ElementReference ModalMessageReference { get; set; }
 

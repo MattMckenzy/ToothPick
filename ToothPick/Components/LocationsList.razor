@@ -1,0 +1,135 @@
+﻿<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+@if (IsLoading)
+{
+    <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+
+<div hidden="@IsLoading">
+    <CollectionControl IsUpdating=@IsUpdating 
+        OrderingFieldCallback=SelectLocationOrder 
+        IsAscending=@IsAscending 
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedLocationOrder
+        FilteringCallback=FilterLocations 
+        FilterValues=@Filters/>
+
+    <div class="locations">
+
+        @if (LocationsKeys != null)
+        {
+            <EntitySidebar Title="Locations"
+                Items=@LocationsKeys
+                Categories=@CategoryKeys
+                CreateCallback=CreateLocation
+                CreateTitle="Create Location"
+                DeleteCallback=DeleteLocation
+                DeleteTitle="Delete Location"
+                LoadCallback=LoadLocation
+                CurrentItem=@CurrentLocation.DbKey
+                UseSuperCategories=true>
+            </EntitySidebar>
+        } 
+
+        <div class="main mb-3">
+            @if (CurrentLocationKeyLocked)
+            {
+                <div class="mb-3 d-flex align-items-center justify-content-around">
+                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
+                        href="/libraries?Filters=Name:@(CurrentLocation.LibraryName)">Go to Location's Library
+                    </a>                    
+                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
+                        href="/series?Filters=LibraryName:@(CurrentLocation.LibraryName);Name:@(CurrentLocation.SeriesName)">Go to Location's Series
+                    </a>
+                </div>
+            }
+            <div class="mb-3">
+                <label for="library" class="form-label">Library</label>
+                <select class="form-select @(CurrentLocationKeyLocked ? "readonly disabled" : (string.IsNullOrWhiteSpace(LibraryNameFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid"))" 
+                    id="library" required=@(!CurrentLocationKeyLocked) readonly=@CurrentLocationKeyLocked disabled=@CurrentLocationKeyLocked aria-describedby="libraryNameFeedback"
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.LibraryName), changeEventArgs.Value!))>
+                    <option selected="@(!LibraryCollection.Any(library => CurrentLocation.LibraryName == library.Name))" class="enter-next" value="" disabled>Select...</option>
+                    @foreach (Library library in LibraryCollection)
+                    {
+                        <option selected="@(CurrentLocation.LibraryName == library.Name)" class="enter-next" value="@library.Name">
+                            @library.Name
+                        </option>
+                    }
+                </select>
+                <div id="libraryNameFeedback" class="invalid-feedback">
+                    @LibraryNameFeedback
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="series" class="form-label">Series</label>
+                @{
+                    bool lockField = CurrentLocationKeyLocked || !LibraryCollection.Any(library => CurrentLocation.LibraryName == library.Name);
+                }
+                <select class="form-select @(lockField ? "readonly disabled" : (string.IsNullOrWhiteSpace(SeriesNameFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid"))" 
+                    id="series" required=@(!lockField) readonly=@lockField disabled=@lockField aria-describedby="seriesNameFeedback"
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.SeriesName), changeEventArgs.Value!))>
+                    <option selected="@(!SeriesCollection.Any(series => CurrentLocation.LibraryName == series.LibraryName && CurrentLocation.SeriesName == series.Name))" class="enter-next" value="" disabled>Select...</option>
+                    @foreach (Series series in SeriesCollection.Where(series => series.LibraryName == CurrentLocation.LibraryName))
+                    {
+                        <option selected="@(CurrentLocation.SeriesName == series.Name)" class="enter-next" value="@series.Name">
+                            @series.Name
+                        </option>
+                    }
+                </select>
+                <div id="seriesNameFeedback" class="invalid-feedback">
+                    @SeriesNameFeedback
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input class="form-control enter-next @(CurrentLocationKeyLocked ? "readonly disabled" : (string.IsNullOrWhiteSpace(NameFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid"))"
+                       type="text" id="name" value="@CurrentLocation.Name" required=@(!CurrentLocationKeyLocked) readonly=@CurrentLocationKeyLocked disabled=@CurrentLocationKeyLocked aria-describedby="nameFeedback"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.Name), changeEventArgs.Value!)) />
+                <div id="nameFeedback" class="invalid-feedback">
+                    @NameFeedback
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="url" class="form-label">Url</label>
+                <input class="form-control enter-next @(string.IsNullOrWhiteSpace(UrlFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       id="url" value="@CurrentLocation.Url" type="text"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.Url), changeEventArgs.Value!)) />
+                <div id="urlFeedback" class="invalid-feedback">
+                    @UrlFeedback
+                </div> 
+            </div>       
+            <div class="mb-3">
+                <label for="fetchCount" class="form-label">Fetch Count</label>
+                <input class="form-control integer-only enter-next @(string.IsNullOrWhiteSpace(FetchCountFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
+                       type="text" id="pe" value="@(CurrentFetchCount == null ? CurrentLocation.FetchCount : CurrentFetchCount)" aria-describedby="fetchCountFeedback"
+                       @onfocusin=@(async (FocusEventArgs _) => await FocusIn(nameof(Location.FetchCount)))
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.FetchCount), changeEventArgs.Value!)) />
+                <div id="fetchCountFeedback" class="invalid-feedback">
+                    @FetchCountFeedback
+                </div>             
+            </div> 
+            <div class="mb-3">
+                <label for="matchFilters" class="form-label">Match Filters</label>
+                <input class="form-control enter-next" type="text" id="matchFilters" value="@CurrentLocation.MatchFilters"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.MatchFilters), changeEventArgs.Value!)) />
+            </div> 
+            <div class="mb-3">
+                <label for="downloadFormat" class="form-label">Download Format</label>
+                <input class="form-control enter-next" type="text" id="downloadFormat" value="@CurrentLocation.DownloadFormat"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.DownloadFormat), changeEventArgs.Value!)) />
+            </div> 
+            <div class="mb-3">
+                <label for="cookies" class="form-label">Cookies</label>
+                <input class="form-control enter-next" type="text" id="cookies" value="@CurrentLocation.Cookies"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.Cookies), changeEventArgs.Value!)) />
+            </div> 
+            <div>
+                <button id="saveButton" class="btn btn-success @(!CurrentLocationIsValid || !CurrentLocationIsDirty ? "disabled" : string.Empty)" @onclick="SaveLocation" disabled="@(!CurrentLocationIsValid || !CurrentLocationIsDirty)">
+                    Save Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

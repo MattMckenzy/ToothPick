@@ -1,8 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 ARG TARGETARCH
+ARG CONFIG
 COPY . ./
 RUN dotnet restore "ToothPick/ToothPick.csproj" -a $TARGETARCH
-RUN dotnet publish "ToothPick/ToothPick.csproj" -a $TARGETARCH -c Release -o /app/publish
+RUN dotnet publish "ToothPick/ToothPick.csproj" -a $TARGETARCH -c $CONFIG -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 ARG TARGETARCH
@@ -19,7 +20,8 @@ RUN apt install -y wget
 RUN apt install -y gnupg2
 RUN apt install -y python3 
 RUN apt install -y ffmpeg
-RUN apt clean -y
+RUN apt install -y python3-pip
+RUN pip3 install pycryptodomex --break-system-packages
 
 RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp &&\
  mkdir /root/yt-dlp -p &&\

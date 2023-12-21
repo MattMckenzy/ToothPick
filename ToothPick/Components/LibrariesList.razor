@@ -1,0 +1,65 @@
+﻿<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+
+@if (IsLoading)
+{
+    <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
+        <div class="spinner-border" role="status"></div>
+    </div>
+}
+
+<div hidden="@IsLoading">
+    <CollectionControl IsUpdating=@IsUpdating 
+        OrderingFieldCallback=SelectLibraryOrder 
+        IsAscending=@IsAscending 
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedLibraryOrder
+        FilteringCallback=FilterLibraries 
+        FilterValues=@Filters/>
+
+    <div class="libraries">
+
+        @if (LibrariesKeys != null)
+        {
+            <EntitySidebar Title="Libraries"
+                Items=@LibrariesKeys
+                Categories=@CategoryKeys
+                CreateCallback=CreateLibrary
+                CreateTitle="Create Library"
+                DeleteCallback=DeleteLibrary
+                DeleteTitle="Delete Library"
+                LoadCallback=LoadLibrary
+                CurrentItem=@CurrentLibrary.Name></EntitySidebar>
+        } 
+
+        <div class="main mb-3">
+            @if (CurrentLibraryKeyLocked)
+            {
+                <div class="mb-3 d-flex align-items-center justify-content-around">
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
+                        href="/series?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Series
+                    </a>
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
+                        href="/locations?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Locations
+                    </a>
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
+                        href="/media?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Media
+                    </a>
+                </div>
+            }         
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input class="form-control enter-next @(CurrentLibraryKeyLocked ? "readonly disabled" : (string.IsNullOrWhiteSpace(NameFeedback) ? (CurrentLibraryIsDirty ? "is-valid" : string.Empty) : "is-invalid"))"
+                       type="text" id="name" value="@CurrentLibrary.Name" required=@(!CurrentLibraryKeyLocked) readonly=@CurrentLibraryKeyLocked disabled=@CurrentLibraryKeyLocked aria-describedby="nameFeedback"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Library.Name), changeEventArgs.Value!)) />
+                <div id="nameFeedback" class="invalid-feedback">
+                    @NameFeedback
+                </div>
+            </div>    
+            <div>
+                <button id="saveButton" class="btn btn-success @(!CurrentLibraryIsValid || !CurrentLibraryIsDirty ? "disabled" : string.Empty)" @onclick="SaveLibrary" disabled="@(!CurrentLibraryIsValid || !CurrentLibraryIsDirty)">
+                    Save Library
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
