@@ -22,13 +22,12 @@
         {
             <EntitySidebar Title="Libraries"
                 Items=@LibrariesKeys
-                Categories=@CategoryKeys
                 CreateCallback=CreateLibrary
                 CreateTitle="Create Library"
                 DeleteCallback=DeleteLibrary
                 DeleteTitle="Delete Library"
                 LoadCallback=LoadLibrary
-                CurrentItem=@CurrentLibrary.Name></EntitySidebar>
+                CurrentItem=@((string.Empty, string.Empty, CurrentLibrary.Name))></EntitySidebar>
         } 
 
         <div class="main mb-3">
@@ -36,13 +35,13 @@
             {
                 <div class="mb-3 d-flex align-items-center justify-content-around">
                     <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/series?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Series
+                        href="/series?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Series <span class="bi bi-list-stars m-1 fs-5" />
                     </a>
                     <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/locations?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Locations
+                        href="/locations?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Locations <span class="bi bi-crosshair m-1 fs-5" />
                     </a>
                     <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/media?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Library's Media
+                        href="/media?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Media <span class="bi bi-collection-play m-1 fs-5" />
                     </a>
                 </div>
             }         

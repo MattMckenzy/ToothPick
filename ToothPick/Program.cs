@@ -18,6 +18,7 @@ global using System.Linq.Dynamic.Core;
 
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Components;
+global using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +63,7 @@ WebApplication webApplication = webApplicationBuilder.Build();
 using (IServiceScope scope = webApplication.Services.CreateAsyncScope())
 {
     ToothPickContext toothPickContext = scope.ServiceProvider.GetRequiredService<ToothPickContext>();
+    
     toothPickContext.Database.Migrate();
     await toothPickContext.Settings.PopulateDefaultsAsync();
 }

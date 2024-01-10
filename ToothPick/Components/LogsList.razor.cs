@@ -10,12 +10,21 @@ namespace ToothPick.Components
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
 
+        [Inject]
+        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+
         [CascadingParameter(Name = nameof(Filter))]
         public string? Filter { get; set; }
 
         private bool IsLoading { get; set; } = true;
         private List<GotifyMessage> GotifyMessages { get; set; } = [];
-        private IEnumerable<LogLevel> FilteredLogLevels = Array.Empty<LogLevel>();
+        private IEnumerable<LogLevel> FilteredLogLevels =
+        [
+            LogLevel.Information,
+            LogLevel.Warning,
+            LogLevel.Error,
+            LogLevel.Critical
+        ];
 
         protected override async Task OnInitializedAsync()
         {
@@ -44,11 +53,23 @@ namespace ToothPick.Components
         {
             if (firstRender)
             {
+                if (string.IsNullOrWhiteSpace(Filter))
+                {
+                    Filter = (await ProtectedLocalStorage.GetAsync<string>("LogsList-Filter")).Value;
+                    NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filter), Filter), false);
+                }
+
                 FilteredLogLevels = Filter?.Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                 .Select<string, LogLevel?>(logLevel => Enum.TryParse(logLevel, out LogLevel parsedLogLevel) ? parsedLogLevel : null)
                 .Where(logLevel => logLevel != null)
                 .Cast<LogLevel>()
-                .ToArray() ?? [];
+                .ToArray() ?? 
+                [
+                    LogLevel.Information,
+                    LogLevel.Warning,
+                    LogLevel.Error,
+                    LogLevel.Critical
+                ];
 
                 await UpdateLogs();
 
@@ -111,8 +132,12 @@ namespace ToothPick.Components
             if (changeEventArgs?.Value != null && changeEventArgs.Value is IEnumerable<LogLevel> selectedLogLevels)
 			{
 				FilteredLogLevels = selectedLogLevels;
-                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filter), string.Join(",", FilteredLogLevels)), false);
+                string filteredLogLevelsString = string.Join(",", FilteredLogLevels);
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filter), filteredLogLevelsString), false);
 
+                if (!string.IsNullOrWhiteSpace(filteredLogLevelsString))
+                    await ProtectedLocalStorage.SetAsync("LogsList-Filter", filteredLogLevelsString);
+                    
                 await UpdateLogs();
             }
         }

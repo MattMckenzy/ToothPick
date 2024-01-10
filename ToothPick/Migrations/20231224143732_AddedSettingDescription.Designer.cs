@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ToothPick.Models;
 
@@ -10,9 +11,11 @@ using ToothPick.Models;
 namespace ToothPick.Migrations
 {
     [DbContext(typeof(ToothPickContext))]
-    partial class ToothPickContextModelSnapshot : ModelSnapshot
+    [Migration("20231224143732_AddedSettingDescription")]
+    partial class AddedSettingDescription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,7 +77,7 @@ namespace ToothPick.Migrations
                     b.Property<string>("SeriesName")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Url")
+                    b.Property<string>("Location")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DatePublished")
@@ -90,6 +93,10 @@ namespace ToothPick.Migrations
                     b.Property<int?>("EpisodeNumber")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("SeasonNumber")
                         .HasColumnType("INTEGER");
 
@@ -101,7 +108,7 @@ namespace ToothPick.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LibraryName", "SeriesName", "Url");
+                    b.HasKey("LibraryName", "SeriesName", "Location");
 
                     b.ToTable("Media");
                 });

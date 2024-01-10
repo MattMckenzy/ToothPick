@@ -6,9 +6,6 @@ namespace ToothPick.Models
 
     public class Location
     {
-        [JsonIgnore, NotMapped]
-        public string DbKey { get { return $"{LibraryName}{SeriesName}{Name}"; } }
-
         public string LibraryName { get; set; } = string.Empty;
         [JsonIgnore]
         public virtual Library? Library { get; set; }

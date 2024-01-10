@@ -19,7 +19,7 @@ namespace ToothPick.Components
 
         [Parameter]
         public int Index { get; set; }
-        
+
         private ModalPrompt ModalPromptReference = null!;
 
         private bool disposedValue;
@@ -48,24 +48,24 @@ namespace ToothPick.Components
             }
 
             async void saveTrackingAction()
-            { 
+            {
                 download.DownloadCancellationTokenSource.Cancel();
 
                 using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-            
-                if ((await toothPickContext.FindAsync<Media>(download.Media.LibraryName, download.Media.SeriesName, download.Media.Location)) == null)
+
+                if ((await toothPickContext.FindAsync<Media>(download.Media.LibraryName, download.Media.SeriesName, download.Media.Url)) == null)
                 {
-                    toothPickContext.Add(download.Media);
+                    toothPickContext.Media.Add(download.Media);
                     await toothPickContext.SaveChangesAsync();
-                }          
-                
-                await InvokeAsync(StateHasChanged);      
+                }
+
+                await InvokeAsync(StateHasChanged);
             }
 
             await ModalPromptReference!.ShowModalPrompt(new()
             {
                 Title = "Cancel download?",
-                Body = new MarkupString($"<p>Stop media download? The download of the media, {(string.IsNullOrWhiteSpace(download.Media.Title) ? download.Media.Location : download.Media.Title)}, will be immediately stopped. You may also choose to save the media item so that it won't download again.</p>"),
+                Body = new MarkupString($"<p>Stop media download? The download of the media, {(string.IsNullOrWhiteSpace(download.Media.Title) ? download.Media.Url : download.Media.Title)}, will be immediately stopped. You may also choose to save the media item so that it won't download again.</p>"),
                 CancelChoice = "Cancel",
                 Choice = "Stop",
                 ChoiceColour = "danger",

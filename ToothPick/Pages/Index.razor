@@ -16,4 +16,12 @@
 
 <h2>Messages</h2>
 
-<LogsList />
+<CascadingValue Name="@nameof(Filter)" Value="@Filter">
+    <LogsList />
+</CascadingValue>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Filter))]
+    public string? Filter { get; set; }
+}

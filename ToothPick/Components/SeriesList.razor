@@ -22,13 +22,12 @@
         {
             <EntitySidebar Title="Series"
                 Items=@SeriesKeys
-                Categories=@CategoryKeys
                 CreateCallback=CreateSeries
                 CreateTitle="Create Series"
                 DeleteCallback=DeleteSeries
                 DeleteTitle="Delete Series"
                 LoadCallback=LoadSeries
-                CurrentItem=@CurrentSeries.DbKey></EntitySidebar>
+                CurrentItem=@((string.Empty, CurrentSeries.LibraryName, CurrentSeries.Name))></EntitySidebar>
         } 
 
         <div class="main mb-3">
@@ -36,13 +35,13 @@
             {
                 <div class="mb-3 d-flex align-items-center justify-content-around">
                     <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                        href="/libraries?Filters=Name:@(CurrentSeries.LibraryName)">Go to Series' Library
-                    </a>
+                        href="/libraries?ItemKey=@(CurrentSeries.LibraryName)">Go to Library <span class="bi bi-list m-1 fs-5" />
+                    </a>    
                     <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                        href="/locations?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Series' Locations
+                        href="/locations?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Locations <span class="bi bi-crosshair m-1 fs-5" />
                     </a>
                     <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
-                        href="/media?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Series' Media
+                        href="/media?Filters=LibraryName:@(CurrentSeries.LibraryName);SeriesName:@(CurrentSeries.Name)">Go to Media <span class="bi bi-collection-play m-1 fs-5" />
                     </a>
                 </div>
             }

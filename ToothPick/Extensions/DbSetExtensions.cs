@@ -22,15 +22,18 @@ namespace ToothPick.Extensions
 
             if (returnSetting == null)
             {
-                if (Defaults.Settings.TryGetValue(name, out string? value) && value != null)
-                    returnSetting = await dbSet.SetSettingAsync(name, value, cancellationToken);
-                else
-                    returnSetting = await dbSet.SetSettingAsync(name, "", cancellationToken);
-
-                return returnSetting;
+                Defaults.Settings.TryGetValue(name, out string? value);                
+                Defaults.SettingDescriptions.TryGetValue(name, out string? description);                    
+                returnSetting = await dbSet.SetSettingAsync(name, value, description, cancellationToken);
             }
-            else
-                return returnSetting;
+
+            if (string.IsNullOrWhiteSpace(returnSetting.Description))
+            {
+                Defaults.SettingDescriptions.TryGetValue(name, out string? description);     
+                returnSetting = await dbSet.SetSettingAsync(name, returnSetting.Value, description, cancellationToken);
+            }
+
+            return returnSetting;
         }
 
         /// <summary>
@@ -41,28 +44,30 @@ namespace ToothPick.Extensions
         /// <param name="service">The service that the setting is associaated with.</param>
         /// <param name="description">The description to set.</param>
         /// <param name="value">The value to set.</param>
-        public static async Task<Setting> SetSettingAsync(this DbSet<Setting> dbSet, string name, string value, CancellationToken cancellationToken = default)
+        public static async Task<Setting> SetSettingAsync(this DbSet<Setting> dbSet, string name, string? value = null, string? description = null, CancellationToken cancellationToken = default)
         {
-            Setting? setting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken);
-
-            if (setting == null)
+            Setting? setting = await dbSet.FirstOrDefaultAsync(setting => setting.Name.Equals(name), cancellationToken) ?? new Setting
             {
-                setting = new Setting
-                {
-                    Name = name,
-                    Value = value
-                };
+                Name = name,
+            };
 
-                EntityEntry<Setting> entity = await dbSet.AddAsync(setting, cancellationToken);
-                await entity.Context.SaveChangesAsync(cancellationToken);
-            }
-            else
+            if (value != null)
             {
                 setting.Value = value;
-
-                EntityEntry<Setting> entity = dbSet.Update(setting);
-                await entity.Context.SaveChangesAsync(cancellationToken);
             }
+
+            if (description != null)
+            {
+                setting.Description = description;
+            }
+
+            EntityEntry<Setting> entity;
+            if (dbSet.Any(setting => setting.Name == name))
+                entity = dbSet.Update(setting);
+            else
+                entity = dbSet.Add(setting);
+
+            await entity.Context.SaveChangesAsync(cancellationToken);
 
             return setting;
         }

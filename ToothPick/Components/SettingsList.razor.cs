@@ -15,6 +15,9 @@ namespace ToothPick.Components
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
 
+        [Inject]
+        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+
         #endregion
 
         #region Parameters
@@ -29,7 +32,7 @@ namespace ToothPick.Components
         private bool IsLoading { get; set; } = true;
 
         private IEnumerable<Setting> Settings { get; set; } = Array.Empty<Setting>();
-        private Dictionary<string, string>? SettingKeys { get; set; }
+        private Dictionary<(string SuperCategory, string Category, string Key), string>? SettingKeys { get; set; }
 
         private Setting? CurrentSetting { get; set; } = null;
         private bool CurrentSettingIsValid = false;
@@ -47,9 +50,12 @@ namespace ToothPick.Components
             {
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
                 await UpdatePageState();
+                
+                if (string.IsNullOrWhiteSpace(ItemKey))
+                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("SettingsList-ItemKey")).Value;
 
                 if (ItemKey != null && Settings.Any(setting => setting.Name.Equals(ItemKey)))
-                    await LoadSetting(ItemKey);
+                    await LoadSetting((string.Empty, string.Empty, ItemKey));
             }
 
             await base.OnAfterRenderAsync(firstRender);
@@ -66,14 +72,11 @@ namespace ToothPick.Components
             await UpdatePageState();
         }
 
-        private async Task LoadSetting(string settingKey)
+        private async Task LoadSetting((string _, string __, string Key) item)
         {
-            if (settingKey.Equals(CurrentSetting?.Name, StringComparison.InvariantCultureIgnoreCase))
-                return;
+            Setting? setting = Settings.FirstOrDefault(setting => setting.Name == item.Key);
 
-            Setting? setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
-
-            if (setting == null)
+            if (setting == null || setting.Name == CurrentSetting?.Name)
                 return;
 
             async void loadAction()
@@ -118,9 +121,9 @@ namespace ToothPick.Components
             await UpdatePageState();
         }
 
-        private async Task DeleteSetting(string settingKey)
+        private async Task DeleteSetting((string _, string __, string Key) item)
         {
-            Setting? setting = Settings.FirstOrDefault(setting => setting.Name.Equals(settingKey, StringComparison.InvariantCultureIgnoreCase));
+            Setting? setting = Settings.FirstOrDefault(setting => setting.Name.Equals(item.Key, StringComparison.InvariantCultureIgnoreCase));
 
             if (setting == null)
                 return;
@@ -161,14 +164,15 @@ namespace ToothPick.Components
             using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
             CurrentSettingIsValid =
-                !string.IsNullOrWhiteSpace(CurrentSetting?.Name);
+                !string.IsNullOrWhiteSpace(CurrentSetting?.Name) &&
+                !Defaults.ReadOnlySettings.Contains(CurrentSetting?.Name ?? string.Empty);
 
             CurrentSettingIsDirty = !string.IsNullOrWhiteSpace(CurrentSetting?.Name) && !CompareSettings(CurrentSetting, toothPickContext.Settings.ToArray().FirstOrDefault(setting => setting.Name.Equals(CurrentSetting.Name)));
 
             Settings = toothPickContext.Settings.ToArray();
             SettingKeys = Settings
                 .OrderBy(setting => setting.Name)
-                .ToDictionary(setting => setting.Name, setting => setting.Name);
+                .ToDictionary(setting => (string.Empty, string.Empty, setting.Name), setting => setting.Name);
             
             IsLoading = false;
 
@@ -188,6 +192,9 @@ namespace ToothPick.Components
         {
             CurrentSetting = setting;
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), setting.Name), false);
+
+            await ProtectedLocalStorage.SetAsync("SettingsList-ItemKey", setting.Name);
+
             await UpdatePageState();
         }
 

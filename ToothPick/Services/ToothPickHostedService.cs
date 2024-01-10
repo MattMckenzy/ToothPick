@@ -61,7 +61,7 @@ namespace ToothPick.Services
                         CancellationToken processingStoppingToken =
                         CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, StatusService.ProcessingCancellationTokenSource.Token).Token;
 
-                        int fetcherCount = await ProcessorMax("ParallelFetch",toothPickContext, processingStoppingToken);
+                        int fetcherCount = await ProcessorMax("ParallelFetch", toothPickContext, processingStoppingToken);
 
                         BlockingCollection<YoutubeDL> fetchers = [];
                         for (int count = 0; count < fetcherCount; count++)
@@ -70,7 +70,7 @@ namespace ToothPick.Services
                                 YoutubeDLPath = "yt-dlp"
                             }, processingStoppingToken);
 
-                        int downloaderCount = await ProcessorMax("ParallelDownloads",toothPickContext, processingStoppingToken);
+                        int downloaderCount = await ProcessorMax("ParallelDownloads", toothPickContext, processingStoppingToken);
 
                         string downloadPath = (await toothPickContext.Settings.GetSettingAsync("DownloadPath", processingStoppingToken)).Value;
 
@@ -92,10 +92,13 @@ namespace ToothPick.Services
                                 List<Task> fetchingTasks = [];
                                 foreach ((string libraryName, string serieName) in toothPickContext.Series.ToList().Select(series => (series.LibraryName, series.Name)))
                                 {
-                                    YoutubeDL fetcher = fetchers.Take(processingStoppingToken);
+                                    if (serieName != "Arthur")
+                                        continue;
 
                                     if (processingStoppingToken.IsCancellationRequested)
-                                    return;
+                                        return;
+
+                                    YoutubeDL fetcher = fetchers.Take(processingStoppingToken);
 
                                     fetchingTasks.Add(Task.Run(async () =>
                                     {
@@ -230,7 +233,7 @@ namespace ToothPick.Services
                         optionSet.Format = location.DownloadFormat;
                     if (!string.IsNullOrWhiteSpace(location.Cookies))
                     {
-                        string cookiesPath = (await toothPickContext.Settings.GetSettingAsync("CookiesPath", stoppingToken)).Value;
+                        string cookiesPath = (await toothPickContext.Settings.GetSettingAsync("CookiesPath", serieStoppingToken)).Value;
                         FileInfo cookiesFile = new(Path.Combine(cookiesPath, location.Cookies));
                         if (cookiesFile.Exists)
                             optionSet.Cookies = cookiesFile.FullName;
@@ -239,92 +242,29 @@ namespace ToothPick.Services
                         optionSet.MatchFilters += $" & {location.MatchFilters}";
                     if (limitRateMBPS.HasValue)
                     {
-                        int downloaderCount = await ProcessorMax("ParallelDownloads",toothPickContext, serieStoppingToken);
+                        int downloaderCount = await ProcessorMax("ParallelDownloads", toothPickContext, serieStoppingToken);
                         optionSet.LimitRate = limitRateMBPS.Value / downloaderCount * 1024 * 1024;
                     }
 
-                    Setting newSeriesFetchCountOverride = await toothPickContext.Settings.GetSettingAsync("NewSeriesFetchCountOverride", serieStoppingToken);
-                    int newSeriesFetchCount = int.TryParse(newSeriesFetchCountOverride.Value, out int parsedNewSeriesFetchCountOverride) ? parsedNewSeriesFetchCountOverride : Defaults.NewSeriesFetchCountOverride;
+                    Setting defaultFetchCountSetting = await toothPickContext.Settings.GetSettingAsync("DefaultFetchCount", serieStoppingToken);
+                    int defaultFetchCount = int.TryParse(defaultFetchCountSetting.Value, out int parsedDefaultFetchCount) ? parsedDefaultFetchCount : Defaults.DefaultFetchCount;
 
-                    int itemsToFetch = newSeriesFetchCount;
-                    itemsToFetch = (itemsToFetch > 0 && location.Series?.Medias.Count == 0) || !location.FetchCount.HasValue ? itemsToFetch : location.FetchCount.Value;
+                    Setting newSeriesFetchCountOverrideSetting = await toothPickContext.Settings.GetSettingAsync("NewSeriesFetchCountOverride", serieStoppingToken);
+                    int newSeriesFetchCountOverride = int.TryParse(newSeriesFetchCountOverrideSetting.Value, out int parsedNewSeriesFetchCountOverride) ? parsedNewSeriesFetchCountOverride : Defaults.NewSeriesFetchCountOverride;
+
+                    int itemsToFetch = defaultFetchCount;
+                    itemsToFetch = (location.Series?.Medias.Count == 0) ? newSeriesFetchCountOverride :
+                        (location.FetchCount ?? itemsToFetch);
                     optionSet.PlaylistItems = $"1:{itemsToFetch}";
 
                     BlockingCollection<MediaDownload> mediaDownloads = [];
-                    async Task videoDataCallback(VideoData videoData)
-                    {
-                        if (series.Medias.Any(item => item.Key.Equals(videoData.ID)))
-                            return;
 
-                        Media newMedia = new()
-                        {
-                            LibraryName = location.LibraryName,
-                            SeriesName = location.SeriesName,
-                            Location = videoData.WebpageUrl,
-                            Key = videoData.ID,
-                            Title = videoData.Title,
-                            Description = videoData.Description,
-                            Duration = videoData.Duration,
-                            ThumbnailLocation = videoData.Thumbnail,
-                            DatePublished = videoData.UploadDate,
-                            SeasonNumber = videoData.SeasonNumber,
-                            EpisodeNumber = videoData.EpisodeNumber
-                        };
-
-                        if (!newMedia.SeasonNumber.HasValue)
-                        {
-                            (int? newSeasonNumber, _) = GetSeasonNumber(newMedia.Title);
-                            if (newSeasonNumber.HasValue)
-                                newMedia.SeasonNumber = newSeasonNumber.Value;
-                            else
-                                newMedia.SeasonNumber = 1;
-                        }
-
-                        if (!newMedia.EpisodeNumber.HasValue)
-                        {
-                            (int? newEpisodeNumber, _) = GetEpisodeNumber(newMedia.Title);
-                            if (newEpisodeNumber.HasValue)
-                                newMedia.EpisodeNumber = newEpisodeNumber;
-                            else
-                                newMedia.EpisodeNumber = (series.Medias.Where(media => media.SeasonNumber == newMedia.SeasonNumber)?.Max(media => media.EpisodeNumber) ?? 0) + 1;
-                        }
-
-                        MediaDownload mediaDownload = new()
-                        {
-                            Media = newMedia,
-                            Location = location,
-                            OptionSet = optionSet
-                        };
-
-                        mediasToDownload.Add(mediaDownload, serieStoppingToken);
-                        series.Medias.Add(newMedia);
-
-                        if (DownloadsService.Downloads.TryAdd(newMedia, new Download
-                        {
-                            Media = newMedia,
-                            DownloadCancellationTokenSource = mediaDownload.DownloadCancellationTokenSource
-                        }))
-                        {
-                            foreach (Func<Task> updateDelegate in DownloadsService.UpdateDelegates.Values)
-                                await updateDelegate.Invoke();
-                        }
-                    }
-
-                    RunResult<IEnumerable<VideoData>> runResult = await fetcher.RunPlaylistDataFetch(location.Url, videoDataCallback, ct: stoppingToken, overrideOptions: optionSet);
-
-                    if (!runResult.Success)
-                    {
-                        await RegisterErrorDownload(new()
-                        {
-                            LibraryName = location.LibraryName,
-                            Library = location.Library,
-                            SeriesName = location.SeriesName,
-                            Series = location.Series,
-                            Location = location.Url
-                        }, string.Join(System.Environment.NewLine, runResult.ErrorOutput));
-                        await GotifyService.PushMessage("ToothPick Error", $"Error fetching data for {location.LibraryName} series {location.SeriesName} location: {location.Url}; {string.Join(System.Environment.NewLine, runResult.ErrorOutput)}", LogLevel.Error, serieStoppingToken);
-                        Logger.LogInformation("Error ({dateTime}) - Error fetching data for {libraryName} series {serieName} location: {location}; {errors}", DateTime.Now, location.LibraryName, location.SeriesName, location.Url, string.Join(System.Environment.NewLine, runResult.ErrorOutput));
-                    }
+                    RunResult<IEnumerable<VideoData>> runResult = await fetcher.RunPlaylistDataFetch(
+                        location.Url,
+                        async (VideoData videoData) => await MediaMetadataCallback(videoData, series, location, optionSet, mediasToDownload, toothPickContext, serieStoppingToken),
+                        async (string errorData) => await ErrorDataCallback(errorData, location, serieStoppingToken),
+                        ct: serieStoppingToken,
+                        overrideOptions: optionSet);
                 }
 
                 await SaveSeriesMetadata(series, toothPickContext, serieStoppingToken);
@@ -341,7 +281,7 @@ namespace ToothPick.Services
             }
             finally
             {
-                if (StatusService.Statuses.TryRemove(series, out _))                
+                if (StatusService.Statuses.TryRemove(series, out _))
                 {
                     foreach (Func<Task> updateDelegate in StatusService.UpdateStatusesDelegates.Values)
                         await updateDelegate.Invoke();
@@ -354,6 +294,92 @@ namespace ToothPick.Services
             }
         }
 
+        private async Task MediaMetadataCallback(VideoData videoData, Series series, Location location, OptionSet optionSet, BlockingCollection<MediaDownload> mediasToDownload, ToothPickContext toothPickContext, CancellationToken cancellationToken)
+        {
+            if (series.Medias.Any(item => item.Url.Equals(videoData.WebpageUrl)))
+                return;
+
+            Media newMedia = new()
+            {
+                LibraryName = location.LibraryName,
+                SeriesName = location.SeriesName,
+                Url = videoData.WebpageUrl,
+                Title = videoData.Title,
+                Description = videoData.Description,
+                Duration = videoData.Duration,
+                ThumbnailLocation = videoData.Thumbnail,
+                DatePublished = videoData.UploadDate,
+                SeasonNumber = videoData.SeasonNumber,
+                EpisodeNumber = videoData.EpisodeNumber
+            };
+
+            if (!newMedia.SeasonNumber.HasValue)
+            {
+                (int? newSeasonNumber, _) = GetSeasonNumber(newMedia.Title);
+                if (newSeasonNumber.HasValue)
+                    newMedia.SeasonNumber = newSeasonNumber.Value;
+                else
+                    newMedia.SeasonNumber = 1;
+            }
+
+            if (!newMedia.EpisodeNumber.HasValue)
+            {
+                (int? newEpisodeNumber, _) = GetEpisodeNumber(newMedia.Title);
+                if (newEpisodeNumber.HasValue)
+                    newMedia.EpisodeNumber = newEpisodeNumber;
+                else
+                    newMedia.EpisodeNumber = (series.Medias.Where(media => media.SeasonNumber == newMedia.SeasonNumber)?.Max(media => media.EpisodeNumber) ?? 0) + 1;
+            }
+
+            MediaDownload mediaDownload = new()
+            {
+                Media = newMedia,
+                Location = location,
+                OptionSet = optionSet
+            };
+
+            Setting downloadEnabledSetting = await toothPickContext.Settings.GetSettingAsync("DownloadEnabled", cancellationToken);
+            bool downloadEnabled = !bool.TryParse(downloadEnabledSetting.Value, out bool parsedDownloadEnabled) || parsedDownloadEnabled;
+
+            if (downloadEnabled)
+            {
+                mediasToDownload.Add(mediaDownload, cancellationToken);
+                series.Medias.Add(newMedia);
+
+                if (DownloadsService.Downloads.TryAdd(newMedia, new Download
+                {
+                    Media = newMedia,
+                    DownloadCancellationTokenSource = mediaDownload.DownloadCancellationTokenSource
+                }))
+                {
+                    foreach (Func<Task> updateDelegate in DownloadsService.UpdateDelegates.Values)
+                        await updateDelegate.Invoke();
+                }
+            }
+            else
+            {
+                toothPickContext.Media.Add(mediaDownload.Media);
+                await toothPickContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        private async Task ErrorDataCallback(string errorData, Location location, CancellationToken serieStoppingToken)
+        {
+            await RegisterErrorDownload(new()
+            {
+                LibraryName = location.LibraryName,
+                Library = location.Library,
+                SeriesName = location.SeriesName,
+                Series = location.Series,
+                Url = $"{location.Url}&mediaKey={errorData.GetHashCode()}",
+                Description = errorData,
+                DatePublished = DateTime.Now,
+
+            }, errorData);
+            await GotifyService.PushMessage("ToothPick Error", $"Error fetching data for {location.LibraryName} series {location.SeriesName} location: {location.Url}; {errorData}", LogLevel.Error, serieStoppingToken);
+            Logger.LogInformation("Error ({dateTime}) - Error fetching data for {libraryName} series {serieName} location: {location}; {errors}", DateTime.Now, location.LibraryName, location.SeriesName, location.Url, errorData);
+        }
+
         #endregion
 
         #region Video Processing
@@ -363,7 +389,7 @@ namespace ToothPick.Services
             using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(stoppingToken);
 
             Media media = mediaDownload.Media;
-            string location = media.Location;
+            string location = media.Url;
 
             await GotifyService.PushMessage("ToothPick Debug", $"Downloading {media.LibraryName} series {media.SeriesName} media: {media.Title}", LogLevel.Debug, stoppingToken);
             Logger.LogInformation("Debug ({dateTime}) - Downloading {libraryName} series {serieName} media: {mediaTitle}.", DateTime.Now, media.LibraryName, media.SeriesName, media.Title);
@@ -441,8 +467,8 @@ namespace ToothPick.Services
             else
             {
                 await RegisterErrorDownload(media, string.Join(Environment.NewLine, runResult.ErrorOutput));
-                await GotifyService.PushMessage("ToothPick Error", $"Could not download {media.LibraryName} series {media.SeriesName} media: {media.Location}; {string.Join(Environment.NewLine, runResult.ErrorOutput)}", LogLevel.Error, stoppingToken);
-                Logger.LogError("Error ({dateTime}) - Could not download {libraryName} series {serieName} media: {mediaLocation}; {errors}", DateTime.Now, media.LibraryName, media.SeriesName, media.Location, string.Join(Environment.NewLine, runResult.ErrorOutput));
+                await GotifyService.PushMessage("ToothPick Error", $"Could not download {media.LibraryName} series {media.SeriesName} media: {media.Url}; {string.Join(Environment.NewLine, runResult.ErrorOutput)}", LogLevel.Error, stoppingToken);
+                Logger.LogError("Error ({dateTime}) - Could not download {libraryName} series {serieName} media: {mediaLocation}; {errors}", DateTime.Now, media.LibraryName, media.SeriesName, media.Url, string.Join(Environment.NewLine, runResult.ErrorOutput));
             }
         }
 
@@ -592,7 +618,7 @@ namespace ToothPick.Services
         #endregion
 
         #region Helper Methods
-        
+
         private static async Task<int> ProcessorMax(string settingName, ToothPickContext toothPickContext, CancellationToken processingStoppingToken)
         {
             Setting setting = await toothPickContext.Settings.GetSettingAsync(settingName, processingStoppingToken);

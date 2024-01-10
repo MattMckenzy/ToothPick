@@ -2,13 +2,10 @@
 
 namespace ToothPick.Models
 {
-    [PrimaryKey(nameof(LibraryName), nameof(SeriesName), nameof(Location))]
-    
+    [PrimaryKey(nameof(LibraryName), nameof(SeriesName), nameof(Url))]
+
     public class Media
     {
-        [JsonIgnore, NotMapped]
-        public string DbKey { get { return $"{LibraryName}{SeriesName}{Location}"; } }
-
         public string LibraryName { get; set; } = string.Empty;
         [JsonIgnore]
         public virtual Library? Library { get; set; }
@@ -17,11 +14,9 @@ namespace ToothPick.Models
         [JsonIgnore]
         public virtual Series? Series { get; set; }
 
-        public string Location { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
 
         public string Title { get; set; } = string.Empty;
-
-        public string Key { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
 
@@ -32,7 +27,7 @@ namespace ToothPick.Models
         public float? Duration { get; set; }
 
         public string ThumbnailLocation { get; set; } = string.Empty;
-        
+
         public DateTime? DatePublished { get; set; }
     }
 }

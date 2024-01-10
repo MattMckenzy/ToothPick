@@ -333,8 +333,8 @@
                         if (toothPickContext.Libraries.Any(library => library.Name.Equals(newMedia.LibraryName)) &&
                             toothPickContext.Series.Any(series => series.LibraryName.Equals(newMedia.LibraryName) &&
                                 series.Name.Equals(newMedia.SeriesName)) &&
-                            !toothPickContext.Media.Any(media => media.Key.Equals(newMedia.Key)) &&
-                            !toothPickContext.ChangeTracker.Entries<Media>().Any(media => media.Entity.Key.Equals(newMedia.Key)))
+                            !toothPickContext.Media.Any(media => media.Url.Equals(newMedia.Url)) &&
+                            !toothPickContext.ChangeTracker.Entries<Media>().Any(media => media.Entity.Url.Equals(newMedia.Url)))
                         {
                             toothPickContext.Media.Add(newMedia);
                         }

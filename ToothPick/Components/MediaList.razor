@@ -3,92 +3,89 @@
 @if (IsLoading)
 {
     <div class="w-100 my-auto d-flex align-items-center justify-content-center" style="height:50vh;">
-        <div class="spinner-border" role="status"></div>
-    </div>
+    <div class="spinner-border" role="status"></div>
+</div>
 }
 
 <div hidden="@IsLoading">
-    <CollectionControl IsUpdating=@IsUpdating 
-        OrderingFieldCallback=SelectMediaOrder 
-        IsAscending=@IsAscending 
-        OrderingCallback=ToggleOrder 
-        SelectedOrderingField=@SelectedMediaOrder
-        FilteringCallback=FilterMedia 
-        FilterValues=@Filters/>
+    <CollectionControl IsUpdating=@IsUpdating OrderingFieldCallback=SelectMediaOrder IsAscending=@IsAscending
+        OrderingCallback=ToggleOrder SelectedOrderingField=@SelectedMediaOrder FilteringCallback=FilterMedia
+        FilterValues=@Filters />
 
     <div class="media">
 
         @if (MediaKeys != null)
         {
-            <EntitySidebar Title="Media"
-                Items=@MediaKeys
-                Categories=@CategoryKeys
-                LoadCallback=LoadMedia
-                CurrentItem=@CurrentMedia.DbKey
-                DeleteTitle="Delete Media"
-                DeleteCallback=DeleteMedia
-                UseSuperCategories=true>
+            <EntitySidebar Title="Media" Items=@MediaKeys LoadCallback=LoadMedia CurrentItem=@((CurrentMedia.LibraryName,
+            CurrentMedia.SeriesName, CurrentMedia.Url)) DeleteTitle="Delete Media" DeleteCallback=DeleteMedia>
             </EntitySidebar>
-        } 
+        }
 
         @if (CurrentMedia != null)
         {
             <div class="main mb-3">
                 <div class="mb-3 d-flex align-items-center justify-content-around">
-                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
-                        href="/libraries?Filters=Name:@(CurrentMedia.LibraryName)">Go to Media's Library
-                    </a>                    
-                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" 
-                        href="/series?Filters=LibraryName:@(CurrentMedia.LibraryName);Name:@(CurrentMedia.SeriesName)">Go to Media's Series
+                    <a id="locationButton" class="m-2 btn btn-primary" role="button"
+                        href="/libraries?ItemKey=@(CurrentMedia.LibraryName)">Go to Library <span
+                            class="bi bi-list m-1 fs-5" />
                     </a>
-                </div>                
-                <div class="mb-3">
-                    <label for="libraryName" class="form-label">Library Name</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.LibraryName" readonly disabled />
-                </div>      
-                <div class="mb-3">
-                    <label for="libraryName" class="form-label">Series Name</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.SeriesName" readonly disabled />
+                    @if (!string.IsNullOrWhiteSpace(CurrentMedia.SeriesName))
+                    {
+                        <a id="locationButton" class="m-2 btn btn-primary" role="button"
+                            href="/series?ItemKey=@($"{CurrentMedia.LibraryName}|~|{CurrentMedia.SeriesName}")&Filters=LibraryName:@(CurrentMedia.LibraryName)">Go
+                            to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        </a>
+                    }
                 </div>
                 <div class="mb-3">
-                    <label for="libraryName" class="form-label">Location</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Location" readonly disabled />
+                    <label for="libraryName" class="form-label">Library Name</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.LibraryName" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Series Name</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.SeriesName" readonly disabled />
+                </div>
+                <div class="mb-3">
+                    <label for="libraryName" class="form-label">Url</label>
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.Url" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">Title</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Title" readonly disabled />
-                </div>
-                <div class="mb-3">
-                    <label for="libraryName" class="form-label">Location</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Location" readonly disabled />
-                </div>
-                <div class="mb-3">
-                    <label for="libraryName" class="form-label">Key</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Key" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName" 
+                        value="@CurrentMedia.Title" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">Description</label>
-                    <textarea class="form-control readonly disabled" rows="10" id="libraryName" value="@CurrentMedia.Description" readonly disabled />
+                    <textarea class="form-control readonly disabled" rows="10" id="libraryName"
+                        value="@CurrentMedia.Description" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">SeasonNumber</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.SeasonNumber" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.SeasonNumber" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">EpisodeNumber</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.EpisodeNumber" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.EpisodeNumber" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">Duration</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.Duration" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.Duration" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">ThumbnailLocation</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.ThumbnailLocation" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.ThumbnailLocation" readonly disabled />
                 </div>
                 <div class="mb-3">
                     <label for="libraryName" class="form-label">DatePublished</label>
-                    <input class="form-control readonly disabled" type="text" id="libraryName" value="@CurrentMedia.DatePublished" readonly disabled />
+                    <input class="form-control readonly disabled" type="text" id="libraryName"
+                        value="@CurrentMedia.DatePublished" readonly disabled />
                 </div>
             </div>
         }

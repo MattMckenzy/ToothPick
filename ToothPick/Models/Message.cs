@@ -2,6 +2,9 @@
 {
     public class GotifyMessage
     {
+        [JsonIgnore]
+        public int InternalId { get; set; }
+
         public int? AppId { get; set; }
 
         public int? Id { get; set; }

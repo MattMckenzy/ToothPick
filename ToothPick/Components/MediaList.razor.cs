@@ -13,6 +13,9 @@
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
 
+        [Inject]
+        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+
         #endregion
 
         #region Parameters
@@ -37,8 +40,7 @@
         private bool IsUpdating { get; set; } = false;
 
         private IEnumerable<Media> MediaCollection { get; set; } = Array.Empty<Media>();
-        private Dictionary<string, string>? MediaKeys { get; set; }
-        private Dictionary<string, IEnumerable<string>>? CategoryKeys { get; set; }
+        private Dictionary<(string SuperCategory, string Category, string Key), string>? MediaKeys { get; set; }
 
         private Media CurrentMedia { get; set; } = new();
 
@@ -70,11 +72,20 @@
         {
             if (firstRender)
             {
-                SelectedMediaOrder = Enum.TryParse(Order, out MediaControlFields parsedOrder) ? parsedOrder : MediaControlFields.Title;
+                if (string.IsNullOrWhiteSpace(Order))
+                    Order = (await ProtectedLocalStorage.GetAsync<string>("MediaList-Order")).Value;
+
+                SelectedMediaOrder = Enum.TryParse(Order, out MediaControlFields parsedOrder) ? parsedOrder : MediaControlFields.DatePublished;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedMediaOrder.ToString()), false);
 
-                IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
+                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("MediaList-IsAscending")).Value;
+
+                IsAscending = bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) ? parsedIsAscending : false;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+
+                if (string.IsNullOrWhiteSpace(FiltersQuery))
+                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("MediaList-Filters")).Value;
 
                 if (FiltersQuery != null)
                 {
@@ -94,8 +105,15 @@
 
                 await UpdatePageState();
 
-                if (ItemKey != null && MediaCollection.Any(media => media.DbKey.ToString().Equals(ItemKey)))
-                    await LoadMedia(ItemKey);
+                if (string.IsNullOrWhiteSpace(ItemKey))
+                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("MediaList-ItemKey")).Value;
+
+                if (ItemKey != null)
+                {
+                    string[] itemKeys = ItemKey.Split("|~|");
+                    if (itemKeys.Length == 3)
+                        await LoadMedia((itemKeys[0], itemKeys[1], itemKeys[2]));
+                }
 
                 IsLoading = false;
                 await InvokeAsync(StateHasChanged);
@@ -108,27 +126,28 @@
 
         #region UI Events
 
-        private async Task LoadMedia(string mediaKey)
+        private async Task LoadMedia((string SuperCategory, string Category, string Key) item)
         {
-            if (mediaKey.Equals(CurrentMedia.DbKey, StringComparison.InvariantCultureIgnoreCase))
-                return;
+            Media? media = MediaCollection.FirstOrDefault(media => media.LibraryName == item.SuperCategory && media.SeriesName == item.Category && media.Url == item.Key);
 
-            Media? media = MediaCollection.FirstOrDefault(media => media.DbKey.Equals(mediaKey, StringComparison.InvariantCultureIgnoreCase));
-
-            if (media == null)
+            if (media == null || media.LibraryName == CurrentMedia.LibraryName && media.SeriesName == CurrentMedia.SeriesName && media.Url == CurrentMedia.Url)
                 return;
 
             CurrentMedia = media;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), media.DbKey), false);
+            string itemKey = $"{media.LibraryName}|~|{media.SeriesName}|~|{media.Url}";
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), itemKey), false);
+
+            await ProtectedLocalStorage.SetAsync("MediaList-ItemKey", itemKey);
+
             await UpdatePageState();
 
             await InvokeAsync(StateHasChanged);
 
         }
-    
-        private async Task DeleteMedia(string mediaKey)
+
+        private async Task DeleteMedia((string SuperCategory, string Category, string Key) item)
         {
-            Media? media = MediaCollection.FirstOrDefault(media => media.DbKey.Equals(mediaKey, StringComparison.InvariantCultureIgnoreCase));
+            Media? media = MediaCollection.FirstOrDefault(media => media.LibraryName == item.SuperCategory && media.SeriesName == item.Category && media.Url == item.Key);
 
             if (media == null)
                 return;
@@ -163,14 +182,24 @@
         private async Task ToggleOrder()
         {
             IsAscending = !IsAscending;
+            string isAscendingQuery = IsAscending.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+
+            if (!string.IsNullOrWhiteSpace(isAscendingQuery))
+                await ProtectedLocalStorage.SetAsync("MediaList-IsAscending", isAscendingQuery);
+
             await UpdateMediaKeys();
         }
 
         private async Task SelectMediaOrder(MediaControlFields mediaOrder)
         {
             SelectedMediaOrder = mediaOrder;
+            string mediaOrderQuery = mediaOrder.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), mediaOrder.ToString()), false);
+
+            if (!string.IsNullOrWhiteSpace(mediaOrderQuery))
+                await ProtectedLocalStorage.SetAsync("MediaList-Order", mediaOrderQuery);
+
             await UpdateMediaKeys();
         }
 
@@ -178,6 +207,11 @@
         {
             Filters = filters;
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
+            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
+
+            if (!string.IsNullOrWhiteSpace(filtersQuery))
+                await ProtectedLocalStorage.SetAsync("MediaList-Filters", filtersQuery);
+
             await UpdateMediaKeys();
         }
 
@@ -212,9 +246,8 @@
                     (
                     media.LibraryName.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     media.SeriesName.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
-                    media.Location.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
+                    media.Url.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     media.Title.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
-                    media.Key.ToString().Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     media.Description.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     (media.SeasonNumber.HasValue ? media.SeasonNumber.Value.ToString() : string.Empty).Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     (media.EpisodeNumber.HasValue ? media.EpisodeNumber.Value.ToString() : string.Empty).Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -223,19 +256,18 @@
                     (media.DatePublished.HasValue ? media.DatePublished.Value.ToString() : string.Empty).Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase)) &&
                     media.LibraryName.Contains(Filters[MediaControlFields.LibraryName.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     media.SeriesName.Contains(Filters[MediaControlFields.SeriesName.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    media.Location.Contains(Filters[MediaControlFields.Location.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
+                    media.Url.Contains(Filters[MediaControlFields.Url.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     media.Title.Contains(Filters[MediaControlFields.Title.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    media.Key.ToString().Contains(Filters[MediaControlFields.Key.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     media.Description.Contains(Filters[MediaControlFields.Description.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (media.SeasonNumber.HasValue ? media.SeasonNumber.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.SeasonNumber.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (media.EpisodeNumber.HasValue ? media.EpisodeNumber.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.EpisodeNumber.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (media.Duration.HasValue ? media.Duration.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.Duration.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     media.ThumbnailLocation.Contains(Filters[MediaControlFields.ThumbnailLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (media.DatePublished.HasValue ? media.DatePublished.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.Duration.ToString()], StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(media => media.DbKey, media => media.Title);
-
-            CategoryKeys = MediaCollection.GroupBy(media => $"{media.LibraryName}.{media.SeriesName}").ToDictionary(group => group.Key, group => group.Select(media => media.DbKey));
+                .OrderBy($"{nameof(Location.LibraryName)} ASC")
+                .ThenBy($"{nameof(Location.SeriesName)} ASC")
+                .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
+                .ToDictionary(media => (media.LibraryName, media.SeriesName, media.Url), media => media.Title);
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);
@@ -248,8 +280,7 @@
             MediaControlFields.Duration => nameof(Media.Duration),
             MediaControlFields.EpisodeNumber => nameof(Media.EpisodeNumber),
             MediaControlFields.Description => nameof(Media.Description),
-            MediaControlFields.Key => nameof(Media.Key),
-            MediaControlFields.Location => nameof(Media.Location),
+            MediaControlFields.Url => nameof(Media.Url),
             MediaControlFields.SeriesName => nameof(Media.SeriesName),
             MediaControlFields.LibraryName => nameof(Media.LibraryName),
             MediaControlFields.Title or _ => nameof(Media.Title)

@@ -5,10 +5,10 @@
 @code {
 
     [Parameter]
-    public required string ItemKey { get; set; }
+    public required (string SuperCategory, string Category, string Key) ItemKey { get; set; }
 
     [Parameter]
-    public required EventCallback<string> DeleteCallback { get; set; }
+    public required EventCallback<(string SuperCategory, string Category, string Key)> DeleteCallback { get; set; }
 
     [Parameter]
     public string DeleteTitle { get; set; } = string.Empty;

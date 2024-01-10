@@ -8,11 +8,9 @@ namespace ToothPick.Models
         [Display(Name = "Series Name")]
         SeriesName,
 
-        Location,
+        Url,
 
         Title,
-
-        Key,
 
         Description,
 

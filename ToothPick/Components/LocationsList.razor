@@ -22,14 +22,12 @@
         {
             <EntitySidebar Title="Locations"
                 Items=@LocationsKeys
-                Categories=@CategoryKeys
                 CreateCallback=CreateLocation
                 CreateTitle="Create Location"
                 DeleteCallback=DeleteLocation
                 DeleteTitle="Delete Location"
                 LoadCallback=LoadLocation
-                CurrentItem=@CurrentLocation.DbKey
-                UseSuperCategories=true>
+                CurrentItem=@((CurrentLocation.LibraryName, CurrentLocation.SeriesName, CurrentLocation.Name))>
             </EntitySidebar>
         } 
 
@@ -38,11 +36,14 @@
             {
                 <div class="mb-3 d-flex align-items-center justify-content-around">
                     <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                        href="/libraries?Filters=Name:@(CurrentLocation.LibraryName)">Go to Location's Library
+                        href="/libraries?ItemKey=@(CurrentLocation.LibraryName)">Go to Library <span class="bi bi-list m-1 fs-5" />
                     </a>                    
-                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                        href="/series?Filters=LibraryName:@(CurrentLocation.LibraryName);Name:@(CurrentLocation.SeriesName)">Go to Location's Series
-                    </a>
+                    @if (!string.IsNullOrWhiteSpace(CurrentLocation.SeriesName))
+                    {
+                        <a id="locationButton" class="m-2 btn btn-primary" role="button" 
+                            href="/series?ItemKey=@($"{CurrentLocation.LibraryName}|~|{CurrentLocation.SeriesName}")&Filters=LibraryName:@(CurrentLocation.LibraryName)">Go to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        </a>
+                    }
                 </div>
             }
             <div class="mb-3">

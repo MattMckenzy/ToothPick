@@ -13,6 +13,9 @@
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
 
+        [Inject]
+        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+         
         #endregion
 
         #region Parameters
@@ -39,8 +42,7 @@
 
         private IEnumerable<Library> LibraryCollection { get; set; } = Array.Empty<Library>();
         private IEnumerable<Series> SeriesCollection { get; set; } = Array.Empty<Series>();
-        private Dictionary<string, string>? SeriesKeys { get; set; }
-        private Dictionary<string, IEnumerable<string>>? CategoryKeys { get; set; }
+        private Dictionary<(string SuperCategory, string Category, string Key), string>? SeriesKeys { get; set; }
 
         private Series CurrentSeries { get; set; } = new() { LibraryName = string.Empty, Name = string.Empty };
 
@@ -98,11 +100,20 @@
                 await JSRuntime.InvokeVoidAsync("setNumericOnly");
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
 
-                SelectedSeriesOrder = System.Enum.TryParse(Order, out SeriesControlFields parsedOrder) ? parsedOrder : SeriesControlFields.Name;
+                if (string.IsNullOrWhiteSpace(Order))
+                    Order = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-Order")).Value;
+                                
+                SelectedSeriesOrder = Enum.TryParse(Order, out SeriesControlFields parsedOrder) ? parsedOrder : SeriesControlFields.Name;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedSeriesOrder.ToString()), false);
+
+                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-IsAscending")).Value;
 
                 IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+ 
+                if (string.IsNullOrWhiteSpace(FiltersQuery))
+                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-Filters")).Value;
 
                 if (FiltersQuery != null)
                 {
@@ -121,9 +132,16 @@
                 await UpdateSeriesKeys();
 
                 await UpdatePageState();
+                
+                if (string.IsNullOrWhiteSpace(ItemKey))
+                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-ItemKey")).Value;
 
-                if (ItemKey != null && SeriesCollection.Any(series => series.DbKey.ToString().Equals(ItemKey)))
-                    await LoadSeries(ItemKey);
+                if (ItemKey != null)
+                {
+                    string[] itemKeys = ItemKey.Split("|~|");
+                    if (itemKeys.Length == 2)
+                    await LoadSeries((string.Empty, itemKeys[0], itemKeys[1]));
+                }
                 else
                     await CreateSeries();
 
@@ -172,18 +190,15 @@
                     CancelChoice = "Cancel",
                     Choice = "Yes",
                     ChoiceColour = "danger",
-                    ChoiceAction = createSeries
+                    ChoiceAction = createSeries ,
                 });
             else
                 createSeries();
         }
 
-        private async Task LoadSeries(string seriesKey)
+        private async Task LoadSeries((string _, string Category, string Key) item)
         {
-            if (seriesKey.Equals(CurrentSeries.DbKey, StringComparison.InvariantCultureIgnoreCase))
-                return;
-
-            Series? series = SeriesCollection.FirstOrDefault(series => series.DbKey.Equals(seriesKey, StringComparison.InvariantCultureIgnoreCase));
+            Series? series = SeriesCollection.FirstOrDefault(series => series.LibraryName == item.Category && series.Name == item.Key);
 
             if (series == null)
                 return;
@@ -247,9 +262,9 @@
             await UpdatePageState();
         }
 
-        private async Task DeleteSeries(string seriesKey)
+        private async Task DeleteSeries((string _, string Category, string Key) item)
         {
-            Series? series = SeriesCollection.FirstOrDefault(series => series.DbKey.Equals(seriesKey, StringComparison.InvariantCultureIgnoreCase));
+            Series? series = SeriesCollection.FirstOrDefault(series => series.LibraryName == item.Category && series.Name == item.Key);
 
             if (series == null)
                 return;
@@ -284,21 +299,36 @@
         private async Task ToggleOrder()
         {
             IsAscending = !IsAscending;
+            string isAscendingQuery = IsAscending.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+         
+            if (!string.IsNullOrWhiteSpace(isAscendingQuery))
+                await ProtectedLocalStorage.SetAsync("SeriesList-IsAscending", isAscendingQuery);
+
             await UpdateSeriesKeys();
         }
 
         private async Task SelectSeriesOrder(SeriesControlFields seriesOrder)
         {
             SelectedSeriesOrder = seriesOrder;
+            string seriesOrderQuery = seriesOrder.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), seriesOrder.ToString()), false);
+           
+            if (!string.IsNullOrWhiteSpace(seriesOrderQuery))
+                await ProtectedLocalStorage.SetAsync("SeriesList-Order", seriesOrderQuery);
+
             await UpdateSeriesKeys();
         }
 
         private async Task FilterSeries(Dictionary<string, string> filters)
         {
             Filters = filters;
+            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
+            
+            if (!string.IsNullOrWhiteSpace(filtersQuery))
+                await ProtectedLocalStorage.SetAsync("SeriesList-Filters", filtersQuery);
+            
             await UpdateSeriesKeys();
         }
 
@@ -314,7 +344,7 @@
             await ValidateCurrentSeries();
 
             CurrentSeriesIsDirty = (!CurrentSeriesKeyLocked && !CompareSeries(CurrentSeries, NewSeries())) ||
-                (CurrentSeriesKeyLocked && !CompareSeries(CurrentSeries, toothPickContext.Series.ToArray().FirstOrDefault(series => series.DbKey == CurrentSeries.DbKey)));
+                (CurrentSeriesKeyLocked && !CompareSeries(CurrentSeries, toothPickContext.Series.ToArray().FirstOrDefault(series => series.LibraryName == CurrentSeries.LibraryName && series.Name == CurrentSeries.Name)));
 
             LibraryCollection = toothPickContext.Libraries.ToArray();
             SeriesCollection = toothPickContext.Series.ToArray();
@@ -391,7 +421,10 @@
         private async Task SetCurrentSeries(Series series)
         {
             CurrentSeries = series;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), series.Name), false);
+            string itemKey = $"{series.LibraryName}|~|{series.Name}";
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), itemKey), false);
+            await ProtectedLocalStorage.SetAsync("SeriesList-ItemKey", itemKey);
+
             await UpdatePageState();
         }
 
@@ -421,10 +454,9 @@
                     series.BannerLocation.Contains(Filters[SeriesControlFields.BannerLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     series.PosterLocation.Contains(Filters[SeriesControlFields.PosterLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     series.LogoLocation.Contains(Filters[SeriesControlFields.LogoLocation.ToString()], StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(series => series.DbKey, series => series.Name);
-
-            CategoryKeys = SeriesCollection.GroupBy(series => series.LibraryName).ToDictionary(group => group.Key, group => group.Select(series => series.DbKey));
+                .OrderBy($"{nameof(Series.LibraryName)} ASC")
+                .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
+                .ToDictionary(series => (string.Empty, series.LibraryName, series.Name), series => series.Name);
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);

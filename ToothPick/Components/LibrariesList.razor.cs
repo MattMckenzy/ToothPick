@@ -13,6 +13,9 @@
         [Inject]
         private NavigationManager NavigationManager { get; set; } = null!;
 
+        [Inject]
+        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+
         #endregion
 
         #region Parameters
@@ -38,7 +41,7 @@
 
 
         private IEnumerable<Library> LibrariesCollection { get; set; } = Array.Empty<Library>();
-        private Dictionary<string, string>? LibrariesKeys { get; set; }
+        private Dictionary<(string SuperCategory, string Category, string Key), string>? LibrariesKeys { get; set; }
         private Dictionary<string, IEnumerable<string>>? CategoryKeys { get; set; }
 
         private Library CurrentLibrary { get; set; } = new();
@@ -87,11 +90,20 @@
                 await JSRuntime.InvokeVoidAsync("setNumericOnly");
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
 
+                if (string.IsNullOrWhiteSpace(Order))
+                    Order = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-Order")).Value;
+                
                 SelectedLibraryOrder = Enum.TryParse(Order, out LibraryControlFields parsedOrder) ? parsedOrder : LibraryControlFields.Name;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedLibraryOrder.ToString()), false);
 
+                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-IsAscending")).Value;
+
                 IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+
+                if (string.IsNullOrWhiteSpace(FiltersQuery))
+                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-Filters")).Value;
 
                 if (FiltersQuery != null)
                 {
@@ -111,8 +123,11 @@
 
                 await UpdatePageState();
 
+                if (string.IsNullOrWhiteSpace(ItemKey))
+                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-ItemKey")).Value;
+
                 if (ItemKey != null && LibrariesCollection.Any(library => library.Name.ToString().Equals(ItemKey)))
-                    await LoadLibrary(ItemKey);
+                    await LoadLibrary((string.Empty, string.Empty, ItemKey));
                 else
                     await CreateLibrary();
 
@@ -157,12 +172,12 @@
                 createLibrary();
         }
 
-        private async Task LoadLibrary(string libraryKey)
+        private async Task LoadLibrary((string _, string __, string Key) item)
         {
-            if (libraryKey.Equals(CurrentLibrary.Name, StringComparison.InvariantCultureIgnoreCase))
+            if (item.Key.Equals(CurrentLibrary.Name, StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            Library? library = LibrariesCollection.FirstOrDefault(library => library.Name.Equals(libraryKey, StringComparison.InvariantCultureIgnoreCase));
+            Library? library = LibrariesCollection.FirstOrDefault(library => library.Name.Equals(item.Key, StringComparison.InvariantCultureIgnoreCase));
 
             if (library == null)
                 return;
@@ -226,9 +241,9 @@
             await UpdatePageState();
         }
 
-        private async Task DeleteLibrary(string libraryKey)
+        private async Task DeleteLibrary((string _, string __, string Key) item)
         {
-            Library? library = LibrariesCollection.FirstOrDefault(library => library.Name.Equals(libraryKey, StringComparison.InvariantCultureIgnoreCase));
+            Library? library = LibrariesCollection.FirstOrDefault(library => library.Name.Equals(item.Key, StringComparison.InvariantCultureIgnoreCase));
 
             if (library == null)
                 return;
@@ -263,21 +278,36 @@
         private async Task ToggleOrder()
         {
             IsAscending = !IsAscending;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
+            string isAscendingQuery = IsAscending.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), isAscendingQuery), false);
+
+            if (!string.IsNullOrWhiteSpace(isAscendingQuery))
+                await ProtectedLocalStorage.SetAsync("LibrariesList-IsAscending", isAscendingQuery);
+
             await UpdateLibrariesKeys();
         }
 
         private async Task SelectLibraryOrder(LibraryControlFields libraryOrder)
         {
             SelectedLibraryOrder = libraryOrder;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), libraryOrder.ToString()), false);
+            string libraryOrderQuery = libraryOrder.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), libraryOrderQuery), false);
+
+            if (!string.IsNullOrWhiteSpace(libraryOrderQuery))
+                await ProtectedLocalStorage.SetAsync("LibrariesList-Order", libraryOrderQuery);
+
             await UpdateLibrariesKeys();
         }
 
         private async Task FilterLibraries(Dictionary<string, string> filters)
         {
             Filters = filters;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
+            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), filtersQuery), false);
+            
+            if (!string.IsNullOrWhiteSpace(filtersQuery))
+                await ProtectedLocalStorage.SetAsync("LibrariesList-Filters", filtersQuery);
+            
             await UpdateLibrariesKeys();
         }
 
@@ -329,6 +359,8 @@
         {
             CurrentLibrary = library;
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), library.Name), false);
+            await ProtectedLocalStorage.SetAsync("LibrariesList-ItemKey", library.Name);
+
             await UpdatePageState();
         }
 
@@ -346,7 +378,7 @@
                     library.Name.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) &&
                     library.Name.Contains(Filters[LibraryControlFields.Name.ToString()], StringComparison.CurrentCultureIgnoreCase))
                 .OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(library => library.Name, library => library.Name);
+                .ToDictionary(library => (string.Empty, string.Empty, library.Name), library => library.Name);
            
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);

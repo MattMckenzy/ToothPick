@@ -5,9 +5,6 @@ namespace ToothPick.Models
     [PrimaryKey(nameof(LibraryName), nameof(Name))]
     public class Series
     {
-        [JsonIgnore, NotMapped]
-        public string DbKey { get { return $"{LibraryName}{Name}"; } }
-
         public string LibraryName { get; set; } = string.Empty;
         [JsonIgnore]
         public virtual Library? Library { get; set; }
