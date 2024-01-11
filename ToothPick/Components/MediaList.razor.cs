@@ -81,7 +81,7 @@
                 if (string.IsNullOrWhiteSpace(IsAscendingQuery))
                     IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("MediaList-IsAscending")).Value;
 
-                IsAscending = bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) ? parsedIsAscending : false;
+                IsAscending = bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) && parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
 
                 if (string.IsNullOrWhiteSpace(FiltersQuery))
@@ -267,7 +267,7 @@
                 .OrderBy($"{nameof(Location.LibraryName)} ASC")
                 .ThenBy($"{nameof(Location.SeriesName)} ASC")
                 .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(media => (media.LibraryName, media.SeriesName, media.Url), media => media.Title);
+                .ToDictionary(media => (media.LibraryName, media.SeriesName, media.Url), media => string.IsNullOrWhiteSpace(media.Title) ? media.Url : media.Title);
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);

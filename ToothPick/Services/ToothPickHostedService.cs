@@ -92,9 +92,6 @@ namespace ToothPick.Services
                                 List<Task> fetchingTasks = [];
                                 foreach ((string libraryName, string serieName) in toothPickContext.Series.ToList().Select(series => (series.LibraryName, series.Name)))
                                 {
-                                    if (serieName != "Arthur")
-                                        continue;
-
                                     if (processingStoppingToken.IsCancellationRequested)
                                         return;
 
@@ -262,7 +259,7 @@ namespace ToothPick.Services
                     RunResult<IEnumerable<VideoData>> runResult = await fetcher.RunPlaylistDataFetch(
                         location.Url,
                         async (VideoData videoData) => await MediaMetadataCallback(videoData, series, location, optionSet, mediasToDownload, toothPickContext, serieStoppingToken),
-                        async (string errorData) => await ErrorDataCallback(errorData, location, serieStoppingToken),
+                        async (string errorData) => await ErrorDataCallback(errorData, series, location, serieStoppingToken),
                         ct: serieStoppingToken,
                         overrideOptions: optionSet);
                 }
@@ -304,8 +301,8 @@ namespace ToothPick.Services
                 LibraryName = location.LibraryName,
                 SeriesName = location.SeriesName,
                 Url = videoData.WebpageUrl,
-                Title = videoData.Title,
-                Description = videoData.Description,
+                Title = videoData.Title ?? string.Empty,
+                Description = videoData.Description ?? string.Empty,
                 Duration = videoData.Duration,
                 ThumbnailLocation = videoData.Thumbnail,
                 DatePublished = videoData.UploadDate,
@@ -363,22 +360,35 @@ namespace ToothPick.Services
             }
         }
 
-        private async Task ErrorDataCallback(string errorData, Location location, CancellationToken serieStoppingToken)
+        private async Task ErrorDataCallback(string errorData, Series series, Location location, CancellationToken serieStoppingToken)
         {
-            await RegisterErrorDownload(new()
+            if (errorData.StartsWith("error", StringComparison.InvariantCultureIgnoreCase))
             {
-                LibraryName = location.LibraryName,
-                Library = location.Library,
-                SeriesName = location.SeriesName,
-                Series = location.Series,
-                Url = $"{location.Url}&mediaKey={errorData.GetHashCode()}",
-                Description = errorData,
-                DatePublished = DateTime.Now,
+                string convertedUrl = $"{location.Url}&mediaKey={errorData.GetKey()}";
 
-            }, errorData);
-            await GotifyService.PushMessage("ToothPick Error", $"Error fetching data for {location.LibraryName} series {location.SeriesName} location: {location.Url}; {errorData}", LogLevel.Error, serieStoppingToken);
-            Logger.LogInformation("Error ({dateTime}) - Error fetching data for {libraryName} series {serieName} location: {location}; {errors}", DateTime.Now, location.LibraryName, location.SeriesName, location.Url, errorData);
-        }
+                if (series.Medias.Any(item => item.Url.Equals(convertedUrl)))
+                    return;
+
+                await RegisterErrorDownload(new()
+                {
+                    LibraryName = location.LibraryName,
+                    Library = location.Library,
+                    SeriesName = location.SeriesName,
+                    Series = location.Series,
+                    Url = convertedUrl,
+                    Description = errorData,
+                    DatePublished = DateTime.Now,
+
+                }, errorData);
+                await GotifyService.PushMessage("ToothPick Error", $"Error while fetching data for {location.LibraryName} series {location.SeriesName} location: {location.Url}; {errorData}", LogLevel.Error, serieStoppingToken);
+                Logger.LogInformation("Error ({dateTime}) - Error while fetching data for {libraryName} series {serieName} location: {location}; {errors}", DateTime.Now, location.LibraryName, location.SeriesName, location.Url, errorData);
+            }
+            else if(errorData.StartsWith("warning", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await GotifyService.PushMessage("ToothPick Warning", $"Warning while fetching data for {location.LibraryName} series {location.SeriesName} location: {location.Url}; {errorData}", LogLevel.Warning, serieStoppingToken);
+                Logger.LogInformation("Warning ({dateTime}) - Warning while fetching data for {libraryName} series {serieName} location: {location}; {errors}", DateTime.Now, location.LibraryName, location.SeriesName, location.Url, errorData);
+            }
+          }
 
         #endregion
 

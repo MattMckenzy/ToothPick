@@ -11,8 +11,8 @@ using ToothPick.Models;
 namespace ToothPick.Migrations
 {
     [DbContext(typeof(ToothPickContext))]
-    [Migration("20231224143732_AddedSettingDescription")]
-    partial class AddedSettingDescription
+    [Migration("20240110171928_ToothPickV2InitialMigration")]
+    partial class ToothPickV2InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -77,7 +77,7 @@ namespace ToothPick.Migrations
                     b.Property<string>("SeriesName")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Location")
+                    b.Property<string>("Url")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DatePublished")
@@ -93,10 +93,6 @@ namespace ToothPick.Migrations
                     b.Property<int?>("EpisodeNumber")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int?>("SeasonNumber")
                         .HasColumnType("INTEGER");
 
@@ -108,7 +104,7 @@ namespace ToothPick.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LibraryName", "SeriesName", "Location");
+                    b.HasKey("LibraryName", "SeriesName", "Url");
 
                     b.ToTable("Media");
                 });

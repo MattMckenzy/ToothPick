@@ -1,25 +1,29 @@
 ﻿@page "/"
 @namespace ToothPick.Pages
+@using Microsoft.AspNetCore.Components.Web
+@model ToothPick.Pages.HostModel
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
 }
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="@Model.ColorTheme">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ToothPick</title>
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
     <base href="~/" />
     <link runat="server" rel="shortcut icon" href="~/favicon.ico" type="image/x-icon" />
     <link runat="server" rel="icon" href="~/favicon.ico" type="image/ico" />
-    
+
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="css/bootstrap-icons/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="ToothPick.styles.css" />
     <link href="css/site.css" rel="stylesheet" />
 </head>
+
 <body>
     <component type="typeof(App)" render-mode="ServerPrerendered" />
 
@@ -40,4 +44,5 @@
     <script src="~/js/selectmenu.js"></script>
     <script src="~/js/site.js"></script>
 </body>
+
 </html>

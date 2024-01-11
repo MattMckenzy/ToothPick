@@ -4,8 +4,8 @@
             <h5>@Title</h5>
             @if (CreateCallback.HasDelegate)
             {
-                <button class="btn btn-item-add d-inline-flex align-items-center rounded my-1 me-3 px-1 py-0 text-success" @onclick=@(async () => await CreateCallback.InvokeAsync()) title="@CreateTitle">
-                    <span class="oi oi-plus"></span>
+                <button class="btn btn-item-add d-inline-flex align-items-center rounded my-1 me-3 px-1 py-0" @onclick=@(async () => await CreateCallback.InvokeAsync()) title="@CreateTitle">
+                    <span class="oi oi-plus text-success"></span>
                 </button>
             }
         </div>
@@ -17,7 +17,7 @@
                     @if(!string.IsNullOrWhiteSpace(superCategory.SuperCategory))
                     {
                         <li class="mb-1">
-                            <u class="text-start pe-none opacity-75">
+                            <u class="text-start pe-none">
                                 @superCategory.SuperCategory
                             </u>
                         </li>
@@ -28,11 +28,11 @@
                         @if(!string.IsNullOrWhiteSpace(category.Category))
                         {
                             <li class="my-1">
-                                <button class="btn btn-category rounded text-start text-truncate mw-100 d-flex align-items-center collapsed" data-bs-toggle="collapse" data-bs-target="#collapse-@((superCategory.SuperCategory+category.Category).GetHashCode())" aria-expanded="false">
+                                <button class="btn btn-category rounded text-start text-truncate mw-100 d-flex align-items-center collapsed" data-bs-toggle="collapse" data-bs-target="#collapse-@((superCategory.SuperCategory+category.Category).GetKey())" aria-expanded="false">
                                     <i class="oi oi-chevron-right pe-1"></i>
                                     @category.Category
                                 </button>
-                                <div class="collapse" id="collapse-@((superCategory.SuperCategory+category.Category).GetHashCode())">
+                                <div class="collapse" id="collapse-@((superCategory.SuperCategory+category.Category).GetKey())">
                                     <ul class="list-unstyled fw-normal pb-1 small">
 
                                         <Virtualize Items="category.Items" Context="item">
@@ -41,7 +41,7 @@
                                             }
                                             <li class="container-fluid">
                                                 <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync((superCategory.SuperCategory, category.Category, item.Key)))>
-                                                    <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate opacity-75 @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
+                                                    <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
                                                 </div>
                                                 @if(DeleteCallback.HasDelegate)
                                                 {
@@ -62,7 +62,7 @@
                                 }
                                 <li class="container-fluid">
                                     <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync((superCategory.SuperCategory, category.Category, item.Key)))>
-                                        <button class="btn btn-item-load my-1 px-1 py-0 text-truncate opacity-75 @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
+                                        <button class="btn btn-item-load my-1 px-1 py-0 text-truncate @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
                                     </div>
                                     @if (DeleteCallback.HasDelegate)
                                     {
@@ -121,13 +121,13 @@
                     bool itemsUpdated = Items != (Dictionary<(string SuperCategory, string Category, string Key), string>)parameter.Value;
                     Items = (Dictionary<(string SuperCategory, string Category, string Key), string>)parameter.Value;
                     if (itemsUpdated)
-                        await ItemsUpdated();
+                        await ItemsUpdated();                 
                     break;
                 case nameof(CurrentItem):
                     bool currentItemUpdated = CurrentItem != ((string SuperCategory, string Category, string Key)?)parameter.Value;
                     CurrentItem = ((string SuperCategory, string Category, string Key))parameter.Value;
                     if (currentItemUpdated)
-                        await CurrentItemUpdated();
+                        await CurrentItemUpdated();                 
                     break;
                 case nameof(DeleteCallback):
                     DeleteCallback = (EventCallback<(string SuperCategory, string Category, string Key)>)parameter.Value;
@@ -151,7 +151,7 @@
 
         await base.SetParametersAsync(ParameterView.Empty);
     }
-    
+
     private async Task ItemsUpdated()
     {        
         SuperCategories.Clear();
@@ -170,7 +170,7 @@
             SuperCategories.First().Categories.Count == 1 &&
             !string.IsNullOrWhiteSpace(SuperCategories.First().SuperCategory) &&
             !string.IsNullOrWhiteSpace(SuperCategories.First().Categories.First().Catgeory))
-            await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(SuperCategories.First().SuperCategory+SuperCategories.First().Categories.First().Catgeory).GetHashCode()}");  
+            await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(SuperCategories.First().SuperCategory+SuperCategories.First().Categories.First().Catgeory).GetKey()}");  
     }
 
     private async Task CurrentItemUpdated()
@@ -179,7 +179,7 @@
         {
             KeyValuePair<(string SuperCategory, string Category, string Key), string>? item = Items.FirstOrDefault(keyValuePair => keyValuePair.Key == CurrentItem);
             if (item.HasValue)
-                await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(item.Value.Key.SuperCategory+item.Value.Key.Category).GetHashCode()}");  
+                await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(item.Value.Key.SuperCategory+item.Value.Key.Category).GetKey()}");  
         }
     }
 }

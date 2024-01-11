@@ -1,10 +1,5 @@
-.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
 .top-row {
     height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
 }
 
 .navbar-brand {
@@ -23,7 +18,6 @@
 }
 
     .nav-item ::deep a {
-        color: #d7d7d7;
         border-radius: 4px;
         height: 3rem;
         display: flex;
@@ -32,16 +26,6 @@
         padding: 0 0.5rem;
         margin: 0 0.5rem;
     }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.25);
-    color: white;
-}
-
-.nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
 
 @media (min-width: 992px) {
     .navbar-toggler {

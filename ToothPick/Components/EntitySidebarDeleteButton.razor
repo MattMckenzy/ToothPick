@@ -1,5 +1,5 @@
 ﻿<button class="btn btn-item-delete d-inline-flex align-items-center rounded my-1 px-1 py-0 text-danger" title="@DeleteTitle" @onclick=@(async () => await DeleteCallback.InvokeAsync(ItemKey))>
-    🗙
+    <span class="bi bi-x-lg"></span>
 </button>
 
 @code {

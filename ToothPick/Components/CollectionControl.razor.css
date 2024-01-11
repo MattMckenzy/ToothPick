@@ -15,5 +15,5 @@
 
 .toast-body {
     max-height: calc(90vh - 38px);
-    background-color: #ffffff;
+    background: rgba(var(--bs-body-bg-rgb), 1);
 }

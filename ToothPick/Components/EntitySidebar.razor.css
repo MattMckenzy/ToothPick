@@ -17,6 +17,10 @@
     }
 }
 
+.btn {
+    color : inherit !important;
+}
+
 .sidebar {
     grid-area: sidebar;
 }
@@ -39,7 +43,6 @@
     .sidebar-list .btn-category {
         padding: 0.25rem 0.5rem;
         font-weight: 600;
-        color: rgba(0,0,0,0.65);
         background-color: transparent;
         border: 0;
     }
@@ -66,7 +69,6 @@
     }
 
     .sidebar-list .btn-category:hover, .sidebar-list .btn-category:focus {
-        color: rgba(0,0,0,0.85);
         background-color: rgba(190,25,25,0.1);
     }
 
@@ -75,7 +77,6 @@
     }
 
     .sidebar-list .btn-item-load:hover, .sidebar-list .btn-item-load:focus, .sidebar-list .btn-item-load.selected {
-        color: rgba(0,0,0,0.85);
         background-color: rgba(190,25,25,0.1);
     }
 

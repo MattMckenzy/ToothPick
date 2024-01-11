@@ -2,10 +2,10 @@
 {
     <ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
-    <ul class="list-group pt-1">        
+    <ul class="list-group pt-2">        
         @foreach (KeyValuePair<Series, Status> keyValuePair in Statuses)
         {
-            <li class="list-group-item bg-light">
+            <li class="list-group-item">
                 <div class="d-flex bd-highlight align-items-center">
                     <div class="p-2 flex-grow-1 bd-highlight">@keyValuePair.Value.Series.LibraryName / @keyValuePair.Value.Series.Name</div>
                     <div class="p-2 bd-highlight">

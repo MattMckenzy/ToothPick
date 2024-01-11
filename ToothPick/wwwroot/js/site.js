@@ -32,6 +32,7 @@ function triggerFileDownload(fileName, url) {
     anchorElement.click();
     anchorElement.remove();
 }
+
 function validateNumericInput(e) {
     var allowedChars = '0123456789.,-eE ';
     function contains(stringValue, charValue) {
@@ -94,7 +95,11 @@ function focusNext(event) {
 };
 
 function expand(elementId) {
-    var element = document.getElementById(elementId);
-    var bootstrapInstance = bootstrap.Collapse.getOrCreateInstance(element);
-    bootstrapInstance.show();
+    var checkExist = setInterval(function() {
+        if (document.getElementById(elementId)) {
+            var bootstrapInstance = bootstrap.Collapse.getOrCreateInstance(document.getElementById(elementId));
+            bootstrapInstance.show();
+           clearInterval(checkExist);
+        }
+     }, 100); // check every 100ms
 }

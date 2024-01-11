@@ -3,7 +3,7 @@
 
 <ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
-<li class="list-group-item bg-light">
+<li class="list-group-item">
     <div class="d-flex bd-highlight align-items-center">
         <div class="p-2 flex-grow-1 bd-highlight overflow-hidden text-truncate">@Media.LibraryName / @Media.SeriesName / @(string.IsNullOrWhiteSpace(Media.Title) ? Media.Url : Media.Title) @(Media.DatePublished != null ? $"({Media.DatePublished.ToString()})" : string.Empty)</div>
         <div class="p-2 bd-highlight">

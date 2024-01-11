@@ -16,6 +16,7 @@
         /// </summary>
         public static readonly Dictionary<string, string> Settings = new()
         {
+            { "ColorTheme", "Dark" },
             { "DataPath", "/ToothPick/Data" },
             { "DownloadPath", "/ToothPick/Media" },
             { "CookiesPath", "/ToothPick/Cookies" },
@@ -25,6 +26,7 @@
             { "GotifyHeader", "X-Gotify-Key" },
             { "GotifyLogLevel", "2" },
             { "GotifyUri", "" },
+            { "LogFilterTokens", "Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution" },
             { "DefaultFetchCount", "5" },
             { "NewSeriesFetchCountOverride", "5" },
             { "ParallelDownloads","4" },
@@ -41,6 +43,7 @@
         /// </summary>
         public static readonly Dictionary<string, string> SettingDescriptions = new()
         {
+            { "ColorTheme", "String - The name of the color theme to use for the ToothPick Web Application UI. Possible values are \"Light\" or \"Dark\". Defaults to \"Dark\"." },
             { "DataPath", "READ-ONLY String - The directory path used to store the database files. Defaults to \"/ToothPick/Data\"." },
             { "CookiesPath", "String - The directory path in which to store and retrieve the cookies used for location-based sessions. Defaults to \"/ToothPick/Data\"." },
             { "DownloadPath", "String - The directory path in which to store downloaded media. Defaults to \"/ToothPick/Data\"." },
@@ -50,6 +53,7 @@
             { "GotifyHeader", "String - The header used to authenticate with Gotify, typically \"X-Gotify-Key\"." },
             { "GotifyLogLevel", "Integer - The minimum log level to post to Gotify: Trace = 0, Debug = 1, Information = 2, Warning = 3, Error = 4, Critical = 5, and None = 6. Defaults to 2 (Information)" },
             { "GotifyUri", "String - The Uri for the Gotify instance to use for notifications." },
+            { "LogFilterTokens", "String - A case-insensitive, semi-colon delimited list of tokens used to filter out unwanted log messages. Defaults with a couple of commonly ignored warnings: \"Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution\"" },
             { "DefaultFetchCount", "Integer - The default amount of videos to fetch and check for download if not specified in the location or overrode for a new series. Defaults to 5." },
             { "NewSeriesFetchCountOverride", "Integer - The amount of videos to fetch for a new, no downloaded media, series. Defaults to 5." },
             { "ParallelDownloads", "Integer - The amount of parallel downloads to perform. Defaults to 4." },

@@ -16,25 +16,38 @@ namespace ToothPick.Services
         private event EventHandler<GotifyMessageEventArgs>? OnNewGotifyMessage = null;
 
         public async Task PushMessage(string Title, string Message, LogLevel logLevel, CancellationToken cancellationToken = new())
-        {
-            GotifyMessage newMessage = new()
-            {
-                InternalId = GotifyMessages.Count + 1,
-                Title = Title,
-                Message = Message,
-                Date = DateTime.Now,
-                Priority = GetGotifyPriority(logLevel)
-            };
+        {               
+            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(cancellationToken);
 
-            GotifyMessages.Add(newMessage.InternalId, newMessage);
+            string logFilterTokensString = (await toothPickContext.Settings.GetSettingAsync("LogFilterTokens", cancellationToken: cancellationToken)).Value;
+            IEnumerable<string> LogFilterTokens = logFilterTokensString.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (LogFilterTokens.Any(token => 
+                    Title.Contains(token, StringComparison.InvariantCultureIgnoreCase) || 
+                    Message.Contains(token, StringComparison.InvariantCultureIgnoreCase)))
+                return;
+
+            GotifyMessage newMessage;
+            lock (GotifyMessages)
+            {
+                newMessage = new()
+                {
+                    InternalId = GotifyMessages.Count + 1,
+                    Title = Title,
+                    Message = Message,
+                    Date = DateTime.Now,
+                    Priority = GetGotifyPriority(logLevel)
+                };
+
+                GotifyMessages.Add(newMessage.InternalId, newMessage);
+            }
+
             OnNewGotifyMessage?.Invoke(this, new GotifyMessageEventArgs { GotifyMessage = newMessage });
 
             try
             {
                 if (await CanUseGotify(cancellationToken: cancellationToken))
                 {
-                    using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(cancellationToken);
-
                     Setting gotifyLogLevelSetting = await toothPickContext.Settings.GetSettingAsync("GotifyLogLevel", cancellationToken);
                     int configuredLogLevel = int.TryParse(gotifyLogLevelSetting.Value, out int parsedLogLevel) ? parsedLogLevel : Defaults.GotifyLogLevel;
 

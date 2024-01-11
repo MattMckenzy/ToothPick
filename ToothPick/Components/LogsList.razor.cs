@@ -99,13 +99,14 @@ namespace ToothPick.Components
 
         private async Task DeleteMessage(GotifyMessage gotifyMessage)
         {
-            if (gotifyMessage.Id != null)
-            {
-                await GotifyService.DeleteMessage((int)gotifyMessage.Id);
-                GotifyMessages.Remove(gotifyMessage);
+            GotifyMessages.Remove(gotifyMessage);
 
-                await InvokeAsync(StateHasChanged);
-            }
+            if (gotifyMessage.Id != null)
+                await GotifyService.DeleteMessage((int)gotifyMessage.Id);            
+            else
+                await GotifyService.DeleteMessage(gotifyMessage.InternalId);
+
+            await InvokeAsync(StateHasChanged);
         }
 
         private async Task DeleteAllMessages()

@@ -55,7 +55,18 @@ namespace ToothPick.Components
 
                 if ((await toothPickContext.FindAsync<Media>(download.Media.LibraryName, download.Media.SeriesName, download.Media.Url)) == null)
                 {
-                    toothPickContext.Media.Add(download.Media);
+                    toothPickContext.Media.Add(new() {
+                        LibraryName = download.Media.LibraryName,
+                        SeriesName = download.Media.SeriesName,
+                        Url = download.Media.Url,
+                        Title = download.Media.Title,
+                        Description = download.Media.Description,
+                        SeasonNumber = download.Media.SeasonNumber,
+                        EpisodeNumber = download.Media.EpisodeNumber,
+                        Duration = download.Media.Duration,
+                        ThumbnailLocation = download.Media.ThumbnailLocation,
+                        DatePublished = download.Media.DatePublished
+                    });
                     await toothPickContext.SaveChangesAsync();
                 }
 
