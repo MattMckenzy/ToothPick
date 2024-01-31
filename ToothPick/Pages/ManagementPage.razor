@@ -31,7 +31,7 @@
 
 <div class="d-flex flex-row input-group mb-3 align-items-center">
     <InputFile id="importSeries" class="form-control" style="max-width:500px;" OnChange="UpdateSeriesFile" />
-    <button class="btn btn-outline-success" type="button" for="importSeries" disabled="@(LocationsFile == null)" @onclick=@(() => ImportSeries())>
+    <button class="btn btn-outline-success" type="button" for="importSeries" disabled="@(SeriesFile == null)" @onclick=@(() => ImportSeries())>
         Import Series
     </button>
 </div>
@@ -75,6 +75,41 @@
     </button>
 </div>
 
+<h2>Reset Media Filename Episode Number by Date</h2>
+
+<div class="d-flex flex-row input-group mb-2 align-items-center">
+    <label for="library" class="input-group-text">Library</label>
+    <select class="form-select" id="library" style="width:300px;"
+        @onchange=@(async (ChangeEventArgs changeEventArgs) => { SelectedLibrary = Libraries.FirstOrDefault(library => (string?)changeEventArgs.Value == library.Name); await InvokeAsync(StateHasChanged); })>
+        <option selected="@(!Libraries.Any(library => SelectedLibrary?.Name == library.Name))" class="enter-next" value="" disabled>Select...</option>
+        @foreach (Library library in Libraries)
+        {
+            <option selected="@(SelectedLibrary?.Name == library.Name)" class="enter-next" value="@library.Name">
+                @library.Name
+            </option>
+        }
+    </select>
+</div>
+<div class="d-flex flex-row input-group mb-2 align-items-center">
+    <label for="series" class="input-group-text">Series</label>
+    @{
+        bool lockField = !Libraries.Any(library => SelectedLibrary?.Name == library.Name);
+    }
+    <select class="form-select @(lockField ? "readonly disabled" : string.Empty)" style="width:300px;" id="series" readonly=@lockField disabled=@lockField
+        @onchange=@(async (ChangeEventArgs changeEventArgs) => { SelectedSeries = Series.Where(series => series.LibraryName == SelectedLibrary?.Name).FirstOrDefault(series => (string?)changeEventArgs.Value == series.Name); await InvokeAsync(StateHasChanged); })>
+        <option selected="@(!Series.Any(series => SelectedSeries?.LibraryName == series.LibraryName && SelectedSeries?.Name == series.Name))" class="enter-next" value="" disabled>Select...</option>
+        @foreach (Series series in Series.Where(series => series.LibraryName == SelectedLibrary?.Name))
+        {
+            <option selected="@(SelectedSeries?.Name == series.Name)" class="enter-next" value="@series.Name">
+                @series.Name
+            </option>
+        }
+    </select>
+</div>    
+<button class="mb-3 btn btn-outline-success" type="button" @onclick=@(() => ResetFilenames())>
+    Reset
+</button>
+
 @code {
 
     [Inject]
@@ -95,11 +130,20 @@
 
     private IBrowserFile? CookiesFile { get; set; } = null;
 
+    private IEnumerable<Library> Libraries {get;set;} = null!;
+    private IEnumerable<Series> Series {get;set;} = null!;
+
+    private Library? SelectedLibrary = null;
+    private Series? SelectedSeries = null;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
         using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();     
+
+        Libraries = toothPickContext.Libraries.ToArray();
+        Series = toothPickContext.Series.ToArray();
     }
 
     private async void ExportLibraries()
@@ -114,15 +158,15 @@
 
     private void UpdateLibrariesFile(InputFileChangeEventArgs inputFileChangeEventArgs)
     {
-        LocationsFile = inputFileChangeEventArgs.File;
+        LibrariesFile = inputFileChangeEventArgs.File;
     }
 
     private async void ImportLibraries()
     {
-        if (LocationsFile != null)
+        if (LibrariesFile != null)
         {
             using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();  
-            using StreamReader streamReader = new StreamReader(LocationsFile.OpenReadStream());
+            using StreamReader streamReader = new StreamReader(LibrariesFile.OpenReadStream());
             string librariesString = await streamReader.ReadToEndAsync();
             IEnumerable<Library>? libraries = JsonConvert.DeserializeObject<IEnumerable<Library>>(librariesString);
             
@@ -143,7 +187,7 @@
                 await ModalPromptReference!.ShowModalPrompt(new()
                 {
                     Title = "Imported succesfully",
-                    Body = new MarkupString($"<p>Imported libraries file \"{LocationsFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Library>().Count(e => e.State == EntityState.Added)} new libraries!</p>"),
+                    Body = new MarkupString($"<p>Imported libraries file \"{LibrariesFile.Name}\" succesfully! Added {toothPickContext.ChangeTracker.Entries<Library>().Count(e => e.State == EntityState.Added)} new libraries!</p>"),
                     CancelChoice = "Ok"
                 });
 
@@ -257,10 +301,10 @@
                             toothPickContext.Series.Any(series => series.Name.Equals(newLocation.SeriesName)) && 
                             !toothPickContext.Locations.Any(location => location.LibraryName.Equals(newLocation.LibraryName) &&
                                 location.SeriesName.Equals(newLocation.SeriesName) &&
-                                location.Url.Equals(newLocation.Url)) &&
+                                location.Name.Equals(newLocation.Name)) &&
                             !toothPickContext.ChangeTracker.Entries<Location>().Any(location => location.Entity.LibraryName.Equals(newLocation.LibraryName) &&
                                 location.Entity.SeriesName.Equals(newLocation.SeriesName) &&
-                                location.Entity.Url.Equals(newLocation.Url)))
+                                location.Entity.Name.Equals(newLocation.Name)))
                         {                
                             toothPickContext.Locations.Add(newLocation);
                         }
@@ -411,4 +455,60 @@
             }
         }
     }    
+
+    private async Task ResetFilenames()
+    {
+        try
+        {
+            if (SelectedLibrary == null || SelectedSeries == null)
+                return;
+
+            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();  
+            string downloadPath = (await toothPickContext.Settings.GetSettingAsync("DownloadPath")).Value;
+            DirectoryInfo serieDirectory = Directory.CreateDirectory(Path.Combine(downloadPath, SelectedLibrary.Name, SelectedSeries.Name));
+                            
+            int currentEpisodeCount = 1;
+            foreach(FileInfo fileInfo in serieDirectory.EnumerateFiles("*.webm").Union(serieDirectory.EnumerateFiles("*.mp4")).Union(serieDirectory.EnumerateFiles("*.mkv")).ToArray().OrderBy(fileInfo => fileInfo.LastWriteTime))
+            {
+                string newFileName = Path.GetFileNameWithoutExtension(fileInfo.Name);
+
+                foreach (Match SeasonMatch in Helpers.SeasonRegex().Matches(newFileName).Reverse())
+                    if (SeasonMatch.Success && SeasonMatch.Captures.FirstOrDefault() != null)
+                        newFileName = newFileName.Cut(SeasonMatch.Captures.First().Index, SeasonMatch.Captures.First().Length);
+                    
+                foreach (Match EpisodeMatch in Helpers.EpisodeRegex().Matches(newFileName).Reverse())
+                    if (EpisodeMatch.Success && EpisodeMatch.Captures.FirstOrDefault() != null)
+                        newFileName = newFileName.Cut(EpisodeMatch.Captures.First().Index, EpisodeMatch.Captures.First().Length);
+                    
+                newFileName = $"{newFileName.RemoveExtraSpaces().Trim()} S01E{currentEpisodeCount:00}";
+
+                File.Move(fileInfo.FullName, Path.Combine(fileInfo.DirectoryName ?? string.Empty, newFileName + Path.GetExtension(fileInfo.Name)));
+                
+                string imageFilePath = Path.Combine(fileInfo.DirectoryName ?? string.Empty, Path.GetFileNameWithoutExtension(fileInfo.Name) + "-thumb.jpg");
+                if(File.Exists(imageFilePath))
+                {
+                    string newImageFileName = newFileName + "-thumb.jpg";
+                    File.Move(imageFilePath, Path.Combine(fileInfo.DirectoryName ?? string.Empty, newImageFileName));
+                }
+
+                currentEpisodeCount++;
+            }
+
+            await ModalPromptReference!.ShowModalPrompt(new()
+            {
+                Title = "Filenames Reset",
+                Body = new MarkupString($"<p>The filenames for the \"{SelectedLibrary.Name}\" series \"{SelectedSeries.Name}\" were succesfully reset!</p>"),
+                CancelChoice = "Ok"
+            });
+        }
+        catch (Exception exception)
+        {
+            await ModalPromptReference!.ShowModalPrompt(new()
+            {
+                Title = "Error during filename reset.",
+                Body = new MarkupString($"<p>The following error was encountered: {exception.Message}</p>"),
+                CancelChoice = "Ok"
+            });
+        }
+    }
 }

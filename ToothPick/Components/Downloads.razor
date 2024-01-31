@@ -1,10 +1,8 @@
 ﻿<ul class="list-group">
     @{
-        int index = 0;
-        @foreach (KeyValuePair<Media, Download> keyValuePair in DownloadList)
+        @foreach (KeyValuePair<Media, Download> keyValuePair in DownloadList.OrderByDescending(download => download.Value.DownloadProgress?.State ?? 0).ThenByDescending(download => download.Value.DownloadProgress?.Progress ?? 0).ThenBy(download => download.Key.DatePublished ?? DateTime.MaxValue))
         {
-            index++;
-            <DownloadItem @key="keyValuePair.Key" Media="keyValuePair.Key" Download="keyValuePair.Value" Index="index" />
+            <DownloadItem @key="keyValuePair.Key" Media="keyValuePair.Key" Download="keyValuePair.Value"/>
         }
     }
 </ul>

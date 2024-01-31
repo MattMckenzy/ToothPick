@@ -1,0 +1,58 @@
+﻿@if (Items.Any())
+{
+    string latestCategory = Items.First().Key.Category;
+    Dictionary<(string SuperCategory, string Category, string Key), string> latestItems = new();
+
+    @foreach(KeyValuePair<(string SuperCategory, string Category, string Key), string> item in Items)
+    {  
+        if (latestCategory != item.Key.Category)
+        {
+            if (latestItems.Any())
+            {
+                <EntitySidebarCategory
+                    Items=@latestItems.ToDictionary()
+                    CurrentItem=@CurrentItem 
+                    Title=@Title
+                    DeleteCallback=@DeleteCallback 
+                    DeleteTitle=@DeleteTitle 
+                    LoadCallback=@LoadCallback />
+            }
+            
+            latestItems.Clear();
+            latestCategory = item.Key.Category;
+        }
+
+        latestItems.Add(item.Key, item.Value);
+    }
+
+    if (latestItems.Any())
+    {       
+        <EntitySidebarCategory
+            Items=@latestItems.ToDictionary()
+            CurrentItem=@CurrentItem 
+            Title=@Title
+            DeleteCallback=@DeleteCallback 
+            DeleteTitle=@DeleteTitle 
+            LoadCallback=@LoadCallback /> 
+    }
+}
+
+@code {
+    [Parameter]
+    public required Dictionary<(string SuperCategory, string Category, string Key), string> Items { get; set; } = null!;
+
+    [Parameter]
+    public required string Title { get; set; } = null!; 
+
+    [Parameter]
+    public (string SuperCategory, string Category, string Key) CurrentItem { get; set; }
+
+    [Parameter]
+    public EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>> DeleteCallback { get; set; }
+
+    [Parameter]
+    public string DeleteTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<(string SuperCategory, string Category, string Key)> LoadCallback { get; set; }
+}

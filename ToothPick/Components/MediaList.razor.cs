@@ -14,7 +14,7 @@
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [Inject]
-        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+        private StorageService StorageService { get; set; } = null!;
 
         #endregion
 
@@ -22,6 +22,9 @@
 
         [CascadingParameter(Name = nameof(ItemKey))]
         public string? ItemKey { get; set; }
+
+        [CascadingParameter(Name = nameof(Level))]
+        public string? Level { get; set; }
 
         [CascadingParameter(Name = nameof(Order))]
         public string? Order { get; set; }
@@ -32,20 +35,26 @@
         [CascadingParameter(Name = nameof(Filters))]
         public string? FiltersQuery { get; set; }
 
+        [CascadingParameter(Name = nameof(FromLink))]
+        public bool? FromLink { get; set; }
+
         #endregion
 
         #region Private Variables
 
         private bool IsLoading { get; set; } = true;
-        private bool IsUpdating { get; set; } = false;
+        private bool IsUpdating { get; set; } = true;
 
-        private IEnumerable<Media> MediaCollection { get; set; } = Array.Empty<Media>();
+        private IEnumerable<Media> MediaCollection { get; set; } = [];
         private Dictionary<(string SuperCategory, string Category, string Key), string>? MediaKeys { get; set; }
 
         private Media CurrentMedia { get; set; } = new();
 
         private ModalPrompt? ModalPromptReference = null;
 
+        private EntityListLevels EntityListLevel { get; set; } = EntityListLevels.SuperCategory;
+
+        private MediaListLevels SelectedLevel { get; set; } = MediaListLevels.Library;
         private bool IsAscending { get; set; } = true;
         private MediaControlFields SelectedMediaOrder { get; set; } = MediaControlFields.Title;
         private Dictionary<string, string> Filters { get; set; } = [];
@@ -56,9 +65,7 @@
 
         protected override Task OnInitializedAsync()
         {
-            if (!Filters.ContainsKey(string.Empty))
-                Filters.Add(string.Empty, string.Empty);
-
+            Filters.TryAdd(string.Empty, string.Empty);
             foreach (MediaControlFields mediaControlFields in Enum.GetValues<MediaControlFields>())
             {
                 if (!Filters.ContainsKey(mediaControlFields.ToString()))
@@ -72,26 +79,38 @@
         {
             if (firstRender)
             {
-                if (string.IsNullOrWhiteSpace(Order))
-                    Order = (await ProtectedLocalStorage.GetAsync<string>("MediaList-Order")).Value;
+                if (!FromLink ?? false)
+                {
+                    if (string.IsNullOrWhiteSpace(value: Level))
+                        Level = await StorageService.Get("MediaList-Level");
 
+                    if (string.IsNullOrWhiteSpace(Order))
+                        Order = await StorageService.Get("MediaList-Order");
+
+                    if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                        IsAscendingQuery = await StorageService.Get("MediaList-IsAscending");
+
+                    if (string.IsNullOrWhiteSpace(FiltersQuery))
+                        FiltersQuery = await StorageService.Get("MediaList-Filters");
+
+                    if (string.IsNullOrWhiteSpace(ItemKey))
+                        ItemKey = await StorageService.Get("MediaList-ItemKey");
+                }
+
+                SelectedLevel = Enum.TryParse(Level, result: out MediaListLevels parsedLevel) ? parsedLevel : MediaListLevels.Library;
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), SelectedLevel.ToString()), false);
+        
                 SelectedMediaOrder = Enum.TryParse(Order, out MediaControlFields parsedOrder) ? parsedOrder : MediaControlFields.DatePublished;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedMediaOrder.ToString()), false);
-
-                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
-                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("MediaList-IsAscending")).Value;
 
                 IsAscending = bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) && parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
 
-                if (string.IsNullOrWhiteSpace(FiltersQuery))
-                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("MediaList-Filters")).Value;
-
                 if (FiltersQuery != null)
                 {
-                    foreach (string filterQuery in FiltersQuery.Split(";", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    foreach (string filterQuery in FiltersQuery.Split("|~;|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                     {
-                        IEnumerable<string> keyValuePair = filterQuery.Split(":", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        IEnumerable<string> keyValuePair = filterQuery.Split("|~:|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                         string? key = keyValuePair.ElementAtOrDefault(0);
                         string? value = keyValuePair.ElementAtOrDefault(1);
 
@@ -99,14 +118,9 @@
                             Filters[key] = value ?? string.Empty;
                     }
                 }
-                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
-
-                await UpdateMediaKeys();
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"))), false);
 
                 await UpdatePageState();
-
-                if (string.IsNullOrWhiteSpace(ItemKey))
-                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("MediaList-ItemKey")).Value;
 
                 if (ItemKey != null)
                 {
@@ -137,7 +151,7 @@
             string itemKey = $"{media.LibraryName}|~|{media.SeriesName}|~|{media.Url}";
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), itemKey), false);
 
-            await ProtectedLocalStorage.SetAsync("MediaList-ItemKey", itemKey);
+            await StorageService.Set("MediaList-ItemKey", itemKey);
 
             await UpdatePageState();
 
@@ -145,39 +159,81 @@
 
         }
 
-        private async Task DeleteMedia((string SuperCategory, string Category, string Key) item)
+        private async Task DeleteMedia(IEnumerable<(string SuperCategory, string Category, string Key)> items)
         {
-            Media? media = MediaCollection.FirstOrDefault(media => media.LibraryName == item.SuperCategory && media.SeriesName == item.Category && media.Url == item.Key);
-
-            if (media == null)
+            IEnumerable<Media> validItems = MediaCollection.Where(location => items.Any(item => item.SuperCategory == location.LibraryName && item.Category == location.SeriesName && item.Key == location.Url));
+            
+            if (!validItems.Any())
                 return;
-
-            await ModalPromptReference!.ShowModalPrompt(new()
-            {
-                Title = "Delete the media?",
-                Body = new MarkupString($"<p>Really delete the media \"{media.Title}\"?</p>"),
-                CancelChoice = "Cancel",
-                Choice = "Delete",
-                ChoiceColour = "danger",
-                ChoiceAction = async () =>
+            else if (validItems.Count() == 1)
+            {               
+                Media media = validItems.First();
+                await ModalPromptReference!.ShowModalPrompt(new()
                 {
-                    using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
-                    toothPickContext.Remove(media);
-                    await toothPickContext.SaveChangesAsync();
-
-                    await ModalPromptReference.ShowModalPrompt(new()
+                    Title = "Delete the media?",
+                    Body = new MarkupString($"<p>Really delete the media \"{media.Title}\"?</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
                     {
-                        Title = "Succesfully deleted!",
-                        Body = new MarkupString($"<p>Succesfully deleted the media \"{media.Title}\"!</p>"),
-                        CancelChoice = "Dismiss"
-                    });
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
-                    await UpdatePageState();
-                }
-            });
+                        toothPickContext.Remove(media);
+                        await toothPickContext.SaveChangesAsync();
 
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the media \"{media.Title}\"!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+            else
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Delete all shown media?",
+                    Body = new MarkupString($"<p>Really delete the {validItems.Count()} media shown?</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
+                    {
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
+
+                        toothPickContext.RemoveRange(validItems);
+                        await toothPickContext.SaveChangesAsync();
+
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the {validItems.Count()} media shown!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
         }
+
+        private async Task SelectLevel(MediaListLevels mediaListLevels)
+        {
+            SelectedLevel = mediaListLevels;
+            string mediaLevelQuery = mediaListLevels.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), mediaLevelQuery), false);
+        
+            if (!string.IsNullOrWhiteSpace(mediaLevelQuery))
+                await StorageService.Set("MediaList-Level", mediaLevelQuery);
+
+            await UpdateMediaKeys();
+        }
+
 
         private async Task ToggleOrder()
         {
@@ -186,7 +242,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
 
             if (!string.IsNullOrWhiteSpace(isAscendingQuery))
-                await ProtectedLocalStorage.SetAsync("MediaList-IsAscending", isAscendingQuery);
+                await StorageService.Set("MediaList-IsAscending", isAscendingQuery);
 
             await UpdateMediaKeys();
         }
@@ -198,7 +254,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), mediaOrder.ToString()), false);
 
             if (!string.IsNullOrWhiteSpace(mediaOrderQuery))
-                await ProtectedLocalStorage.SetAsync("MediaList-Order", mediaOrderQuery);
+                await StorageService.Set("MediaList-Order", mediaOrderQuery);
 
             await UpdateMediaKeys();
         }
@@ -206,15 +262,14 @@
         private async Task FilterMedia(Dictionary<string, string> filters)
         {
             Filters = filters;
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
-            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
-
+            string filtersQuery = string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"));
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), filtersQuery), false);
+            
             if (!string.IsNullOrWhiteSpace(filtersQuery))
-                await ProtectedLocalStorage.SetAsync("MediaList-Filters", filtersQuery);
+                await StorageService.Set("MediaList-Filters", filtersQuery);
 
             await UpdateMediaKeys();
         }
-
 
         #endregion
 
@@ -224,7 +279,7 @@
         {
             using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
-            MediaCollection = toothPickContext.Media.ToArray();
+            MediaCollection = [.. toothPickContext.Media];
 
             await UpdateMediaKeys();
 
@@ -237,11 +292,9 @@
             IsUpdating = true;
             await InvokeAsync(StateHasChanged);
 
-            ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
             string globalFilter = Filters[string.Empty];
 
-            MediaKeys = MediaCollection.AsQueryable()
+            IQueryable<Media> MediaKeysQuery = MediaCollection.AsQueryable()
                 .Where(media =>
                     (
                     media.LibraryName.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -263,11 +316,21 @@
                     (media.EpisodeNumber.HasValue ? media.EpisodeNumber.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.EpisodeNumber.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (media.Duration.HasValue ? media.Duration.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.Duration.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     media.ThumbnailLocation.Contains(Filters[MediaControlFields.ThumbnailLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    (media.DatePublished.HasValue ? media.DatePublished.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.Duration.ToString()], StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy($"{nameof(Location.LibraryName)} ASC")
-                .ThenBy($"{nameof(Location.SeriesName)} ASC")
-                .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(media => (media.LibraryName, media.SeriesName, media.Url), media => string.IsNullOrWhiteSpace(media.Title) ? media.Url : media.Title);
+                    (media.DatePublished.HasValue ? media.DatePublished.Value.ToString() : string.Empty).Contains(Filters[MediaControlFields.Duration.ToString()], StringComparison.CurrentCultureIgnoreCase));
+                
+            if (SelectedLevel == MediaListLevels.Library)
+                MediaKeysQuery = MediaKeysQuery.OrderBy($"{nameof(Media.LibraryName)} ASC")
+                    .ThenBy($"{nameof(Media.SeriesName)} ASC")
+                    .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");            
+            else if (SelectedLevel == MediaListLevels.Series)
+                MediaKeysQuery = MediaKeysQuery.OrderBy($"{nameof(Media.SeriesName)} ASC")
+                    .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");  
+            else
+                MediaKeysQuery = MediaKeysQuery.OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");  
+
+            MediaKeys = MediaKeysQuery.ToDictionary(media => (media.LibraryName, media.SeriesName, media.Url), media => string.IsNullOrWhiteSpace(media.Title) ? media.Url : media.Title);
+
+            EntityListLevel = GetEntityListLevel();
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);
@@ -284,6 +347,13 @@
             MediaControlFields.SeriesName => nameof(Media.SeriesName),
             MediaControlFields.LibraryName => nameof(Media.LibraryName),
             MediaControlFields.Title or _ => nameof(Media.Title)
+        };
+
+        private EntityListLevels GetEntityListLevel() => SelectedLevel switch
+        {
+            MediaListLevels.Media => EntityListLevels.Entity,
+            MediaListLevels.Series => EntityListLevels.Category,
+            MediaListLevels.Library or _ => EntityListLevels.SuperCategory
         };
 
         #endregion

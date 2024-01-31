@@ -1,6 +1,4 @@
-using System.ComponentModel;
-
-namespace ToothPick.Models
+namespace ToothPick.Enums
 {
     public enum LibraryControlFields
     {

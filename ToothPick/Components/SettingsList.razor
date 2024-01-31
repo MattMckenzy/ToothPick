@@ -1,6 +1,4 @@
-﻿@using ToothPick.Components;
-
-<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
+﻿<ModalPrompt @ref=ModalPromptReference></ModalPrompt>
 
 @if (IsLoading)
 {
@@ -9,36 +7,53 @@
     </div>
 }
 
-<div class="settings" hidden=@IsLoading>
+<div class="entities-wrapper" hidden=@IsLoading>
 
-    @if (SettingKeys != null)
-    {
-        <EntitySidebar Title="Settings"
-            Items=@SettingKeys
-            DeleteCallback=DeleteSetting
-            DeleteTitle="Delete Setting"
-            LoadCallback=LoadSetting
-            CurrentItem=@((string.Empty, string.Empty, CurrentSetting?.Name))></EntitySidebar>
-    }
+    <CollectionControl 
+        LevelChangeCallback=SelectLevel
+        SelectedLevel=@SelectedLevel
+        OrderingFieldCallback=SelectSettingsOrder 
+        IsAscending=@IsAscending 
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedSettingsOrder
+        FilteringCallback=FilterSettings 
+        FilterValues=@Filters         
+        IsUpdating=@IsUpdating />
 
-    <div class="main mb-3">
-        <div class="mb-3">
-            <label for="settingName" class="form-label">Name</label>
-            <input type="text" class="form-control readonly disabled" id="settingName" value="@(CurrentSetting != null ? CurrentSetting.Name : string.Empty)" readonly disabled>
-        </div>
-        <div class="mb-3">
-            <label for="settingValue" class="form-label">Value</label>
-            <input type="text" class="form-control enter-next @(!CurrentSettingIsValid ? "readonly disabled" : (CurrentSettingIsDirty ? "is-valid" : string.Empty))" id="settingValue" value="@CurrentSetting?.Value" readonly=@(!CurrentSettingIsValid) disabled="@(!CurrentSettingIsValid)"
-                @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Setting.Value), changeEventArgs.Value!)) />
-        </div>
-        <div class="mb-3">
-            <label for="libraryName" class="form-label">Description</label>
-            <textarea class="form-control readonly disabled" rows="4" id="libraryName" value="@(CurrentSetting != null ? CurrentSetting.Description : string.Empty)" readonly disabled />
-        </div>
-        <div>
-            <button id="saveButton" class="btn btn-success @(!CurrentSettingIsValid || !CurrentSettingIsDirty ? "disabled" : string.Empty)" @onclick="SaveSetting" disabled="@(!CurrentSettingIsValid || !CurrentSettingIsDirty)">
-                Save Setting
-            </button>
+    <div class="entities">
+
+        @if (SettingKeys != null)
+        {
+            <EntitySidebar Title="Settings"
+                Items=@SettingKeys
+                DeleteCallback=DeleteSettings
+                DeleteTitle="Delete Setting"
+                DeleteAllTitle="Delete Shown Settings"
+                LoadCallback=LoadSetting
+                CurrentItem=@((string.Empty, string.Empty, CurrentSetting?.Name))
+                EntityListLevel=@EntityListLevels.Entity>
+            </EntitySidebar>
+        }
+
+        <div class="grid-main mb-3">
+            <div class="mb-3">
+                <label for="settingName" class="form-label">Name</label>
+                <input type="text" class="form-control readonly disabled" id="settingName" value="@(CurrentSetting != null ? CurrentSetting.Name : string.Empty)" readonly disabled>
+            </div>
+            <div class="mb-3">
+                <label for="settingValue" class="form-label">Value</label>
+                <textarea rows="1" class="form-control enter-next @(!CurrentSettingIsValid ? "readonly disabled" : (CurrentSettingIsDirty ? "is-valid" : string.Empty))" id="settingValue" value="@CurrentSetting?.Value" readonly=@(!CurrentSettingIsValid) disabled="@(!CurrentSettingIsValid)"
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Setting.Value), changeEventArgs.Value!)) />
+            </div>
+            <div class="mb-3">
+                <label for="libraryName" class="form-label">Description</label>
+                <textarea rows="4" class="form-control readonly disabled" id="libraryName" value="@(CurrentSetting != null ? CurrentSetting.Description : string.Empty)" readonly disabled />
+            </div>
+            <div>
+                <button id="saveButton" class="btn btn-success @(!CurrentSettingIsValid || !CurrentSettingIsDirty ? "disabled" : string.Empty)" @onclick="SaveSetting" disabled="@(!CurrentSettingIsValid || !CurrentSettingIsDirty)">
+                    Save Setting
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -14,7 +14,7 @@
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [Inject]
-        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+        private StorageService StorageService { get; set; } = null!;
 
         #endregion
 
@@ -22,6 +22,9 @@
 
         [CascadingParameter(Name = nameof(ItemKey))]
         public string? ItemKey { get; set; }
+
+        [CascadingParameter(Name = nameof(Level))]
+        public string? Level { get; set; }
 
         [CascadingParameter(Name = nameof(Order))]
         public string? Order { get; set; }
@@ -32,17 +35,19 @@
         [CascadingParameter(Name = nameof(Filters))]
         public string? FiltersQuery { get; set; }
 
+        [CascadingParameter(Name = nameof(FromLink))]
+        public bool? FromLink { get; set; }
+
         #endregion
 
         #region Private Variables
 
         private bool IsLoading { get; set; } = true;
-        private bool IsUpdating { get; set; } = false;
+        private bool IsUpdating { get; set; } = true;
 
-
-        private IEnumerable<Library> LibraryCollection { get; set; } = Array.Empty<Library>();
-        private IEnumerable<Series> SeriesCollection { get; set; } = Array.Empty<Series>();
-        private IEnumerable<Location> LocationsCollection { get; set; } = Array.Empty<Location>();
+        private IEnumerable<Library> LibraryCollection { get; set; } = [];
+        private IEnumerable<Series> SeriesCollection { get; set; } = [];
+        private IEnumerable<Location> LocationsCollection { get; set; } = [];
         private Dictionary<(string SuperCategory, string Category, string Key), string>? LocationsKeys { get; set; }
 
         private Location CurrentLocation { get; set; } = new();
@@ -72,6 +77,9 @@
 
         private ModalPrompt? ModalPromptReference = null;
 
+        private EntityListLevels EntityListLevel { get; set; } = EntityListLevels.SuperCategory;
+
+        private LocationsListLevels SelectedLevel { get; set; } = LocationsListLevels.Library;
         private bool IsAscending { get; set; } = true;
         private LocationControlFields SelectedLocationOrder { get; set; } = LocationControlFields.Name;
         private Dictionary<string, string> Filters { get; set; } = [];
@@ -82,9 +90,7 @@
 
         protected override Task OnInitializedAsync()
         {
-            if (!Filters.ContainsKey(string.Empty))
-                Filters.Add(string.Empty, string.Empty);
-
+            Filters.TryAdd(string.Empty, string.Empty);
             foreach (LocationControlFields locationControlFields in Enum.GetValues<LocationControlFields>())
             {
                 if (!Filters.ContainsKey(locationControlFields.ToString()))
@@ -102,26 +108,38 @@
                 await JSRuntime.InvokeVoidAsync("setNumericOnly");
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
 
-                if (string.IsNullOrWhiteSpace(Order))
-                    Order = (await ProtectedLocalStorage.GetAsync<string>("LocationsList-Order")).Value;
-                
+                if (!FromLink ?? false)
+                {
+                    if (string.IsNullOrWhiteSpace(value: Level))
+                        Level = await StorageService.Get("LocationsList-Level");
+
+                    if (string.IsNullOrWhiteSpace(Order))
+                        Order = await StorageService.Get("LocationsList-Order");
+
+                    if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                        IsAscendingQuery = await StorageService.Get("LocationsList-IsAscending");
+
+                    if (string.IsNullOrWhiteSpace(FiltersQuery))
+                        FiltersQuery = await StorageService.Get("LocationsList-Filters");
+
+                    if (string.IsNullOrWhiteSpace(ItemKey))
+                        ItemKey = await StorageService.Get("LocationsList-ItemKey");
+                }
+
+                SelectedLevel = Enum.TryParse(Level, out LocationsListLevels parsedLevel) ? parsedLevel : LocationsListLevels.Library;
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), SelectedLevel.ToString()), false);
+                            
                 SelectedLocationOrder = Enum.TryParse(Order, out LocationControlFields parsedOrder) ? parsedOrder : LocationControlFields.Name;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedLocationOrder.ToString()), false);
-
-                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
-                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("LocationsList-IsAscending")).Value;
 
                 IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
  
-                if (string.IsNullOrWhiteSpace(FiltersQuery))
-                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("LocationsList-Filters")).Value;
-
                 if (FiltersQuery != null)
                 {
-                    foreach (string filterQuery in FiltersQuery.Split(";", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    foreach (string filterQuery in FiltersQuery.Split("|~;|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                     {
-                        IEnumerable<string> keyValuePair = filterQuery.Split(":", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        IEnumerable<string> keyValuePair = filterQuery.Split("|~:|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                         string? key = keyValuePair.ElementAtOrDefault(0);
                         string? value = keyValuePair.ElementAtOrDefault(1);
 
@@ -129,15 +147,10 @@
                             Filters[key] = value ?? string.Empty;
                     }
                 }
-                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
-
-                await UpdateLocationsKeys();
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"))), false);
 
                 await UpdatePageState();
                 
-                if (string.IsNullOrWhiteSpace(ItemKey))
-                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("LocationsList-ItemKey")).Value;
-
                 if (ItemKey != null)
                 {
                     string[] itemKeys = ItemKey.Split("|~|");
@@ -164,7 +177,9 @@
             {
                 case nameof(Location.FetchCount):
                     CurrentFetchCount = (string?)value;
-                    if (int.TryParse((string?)value, out int fetchCountResult))
+                    if (string.IsNullOrWhiteSpace(CurrentFetchCount))
+                        typeof(Location).GetProperty(propertyName)!.SetValue(CurrentLocation, null);
+                    else if (int.TryParse((string?)value, out int fetchCountResult))
                     {
                         typeof(Location).GetProperty(propertyName)!.SetValue(CurrentLocation, fetchCountResult);
                         CurrentFetchCount = null;
@@ -177,9 +192,6 @@
             }
 
             CurrentFocus = null;
-
-            await UpdatePageState();
-
 
             await UpdatePageState();
         }
@@ -280,38 +292,79 @@
             await UpdatePageState();
         }
 
-        private async Task DeleteLocation((string SuperCategory, string Category, string Key) item)
+        private async Task DeleteLocations(IEnumerable<(string SuperCategory, string Category, string Key)> items)
         {
-            Location? location = LocationsCollection.FirstOrDefault(location => location.LibraryName == item.SuperCategory && location.SeriesName == item.Category && location.Name == item.Key);
-
-            if (location == null)
+            IEnumerable<Location> validItems = LocationsCollection.Where(location => items.Any(item => item.SuperCategory == location.LibraryName && item.Category == location.SeriesName && item.Key == location.Name));
+            
+            if (!validItems.Any())
                 return;
-
-            await ModalPromptReference!.ShowModalPrompt(new()
+            else if (validItems.Count() == 1)
             {
-                Title = "Delete the location?",
-                Body = new MarkupString($"<p>Really delete the location \"{location.Name}\"?</p>"),
-                CancelChoice = "Cancel",
-                Choice = "Delete",
-                ChoiceColour = "danger",
-                ChoiceAction = async () =>
+                Location location = validItems.First();
+                await ModalPromptReference!.ShowModalPrompt(new()
                 {
-                    using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
-                    toothPickContext.Remove(location);
-                    await toothPickContext.SaveChangesAsync();
-
-                    await ModalPromptReference.ShowModalPrompt(new()
+                    Title = "Delete the location?",
+                    Body = new MarkupString($"<p>Really delete the location \"{location.Name}\"?</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
                     {
-                        Title = "Succesfully deleted!",
-                        Body = new MarkupString($"<p>Succesfully deleted the location \"{location.Name}\"!</p>"),
-                        CancelChoice = "Dismiss"
-                    });
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
-                    await UpdatePageState();
-                }
-            });
+                        toothPickContext.RemoveRange(location);
+                        await toothPickContext.SaveChangesAsync();
 
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the location \"{location.Name}\"!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+            else
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Delete all shown locations?",
+                    Body = new MarkupString($"<p>Really delete the {validItems.Count()} locations shown?</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
+                    {
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
+
+                        toothPickContext.Remove(validItems);
+                        await toothPickContext.SaveChangesAsync();
+
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the {validItems.Count()} locations shown!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+        }
+
+        private async Task SelectLevel(LocationsListLevels locationsListLevels)
+        {
+            SelectedLevel = locationsListLevels;
+            string locationsLevelQuery = locationsListLevels.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), locationsLevelQuery), false);
+        
+            if (!string.IsNullOrWhiteSpace(locationsLevelQuery))
+                await StorageService.Set("LocationsList-Level", locationsLevelQuery);
+
+            await UpdateLocationsKeys();
         }
 
         private async Task ToggleOrder()
@@ -321,7 +374,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
             
             if (!string.IsNullOrWhiteSpace(isAscendingQuery))
-                await ProtectedLocalStorage.SetAsync("LocationsList-IsAscending", isAscendingQuery);
+                await StorageService.Set("LocationsList-IsAscending", isAscendingQuery);
 
             await UpdateLocationsKeys();
         }
@@ -333,7 +386,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), locationOrder.ToString()), false);
             
             if (!string.IsNullOrWhiteSpace(locationOrderQuery))
-                await ProtectedLocalStorage.SetAsync("LocationsList-Order", locationOrderQuery);
+                await StorageService.Set("LocationsList-Order", locationOrderQuery);
 
             await UpdateLocationsKeys();
         }
@@ -341,11 +394,11 @@
         private async Task FilterLocations(Dictionary<string, string> filters)
         {
             Filters = filters;
-            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
+            string filtersQuery = string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"));
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), filtersQuery), false);
             
             if (!string.IsNullOrWhiteSpace(filtersQuery))
-                await ProtectedLocalStorage.SetAsync("LocationsList-Filters", filtersQuery);
+                await StorageService.Set("LocationsList-Filters", filtersQuery);
             
             await UpdateLocationsKeys();
         }
@@ -379,9 +432,9 @@
             CurrentLocationIsDirty = (!CurrentLocationKeyLocked && !CompareLocations(CurrentLocation, NewLocation())) ||
                 (CurrentLocationKeyLocked && !CompareLocations(CurrentLocation, toothPickContext.Locations.ToArray().FirstOrDefault(location => location.LibraryName == CurrentLocation.LibraryName && location.SeriesName == CurrentLocation.SeriesName && location.Name == CurrentLocation.Name)));
 
-            LibraryCollection = toothPickContext.Libraries.ToArray();
-            SeriesCollection = toothPickContext.Series.ToArray();
-            LocationsCollection = toothPickContext.Locations.ToArray();
+            LibraryCollection = [.. toothPickContext.Libraries];
+            SeriesCollection = [.. toothPickContext.Series];
+            LocationsCollection = [.. toothPickContext.Locations];
 
             await UpdateLocationsKeys();
 
@@ -449,6 +502,7 @@
                 location1.Name.Equals(location2.Name, StringComparison.InvariantCulture) &&
                 location1.Url.Equals(location2.Url, StringComparison.InvariantCulture) &&
                 location1.FetchCount == location2.FetchCount &&
+                location1.ReverseFetch == location2.ReverseFetch &&
                 location1.MatchFilters.Equals(location2.MatchFilters, StringComparison.InvariantCulture) &&
                 location1.DownloadFormat.Equals(location2.DownloadFormat, StringComparison.InvariantCulture) &&
                 location1.Cookies.Equals(location2.Cookies, StringComparison.InvariantCulture);
@@ -459,7 +513,7 @@
             CurrentLocation = location;
             string itemKey = $"{location.LibraryName}|~|{location.SeriesName}|~|{location.Name}";
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), itemKey), false);
-            await ProtectedLocalStorage.SetAsync("LocationsList-ItemKey", itemKey);
+            await StorageService.Set("LocationsList-ItemKey", itemKey);
 
             await UpdatePageState();
         }
@@ -469,11 +523,9 @@
             IsUpdating = true;
             await InvokeAsync(StateHasChanged);
 
-            ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
             string globalFilter = Filters[string.Empty];
 
-            LocationsKeys = LocationsCollection.AsQueryable()
+            IQueryable<Location> LocationsKeysQuery = LocationsCollection.AsQueryable()
                 .Where(location =>
                     (
                     location.LibraryName.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -481,6 +533,7 @@
                     location.Name.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     location.Url.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     (location.FetchCount.HasValue ? location.FetchCount.Value.ToString() : string.Empty).Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
+                    location.ReverseFetch.ToString().Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     location.MatchFilters.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     location.DownloadFormat.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     location.Cookies.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase)) &&
@@ -489,13 +542,24 @@
                     location.Name.Contains(Filters[LocationControlFields.Name.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     location.Url.Contains(Filters[LocationControlFields.Url.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     (location.FetchCount.HasValue ? location.FetchCount.Value.ToString() : string.Empty).Contains(Filters[LocationControlFields.FetchCount.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
+                    location.ReverseFetch.ToString().Contains(Filters[LocationControlFields.ReverseFetch.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     location.MatchFilters.Contains(Filters[LocationControlFields.MatchFilters.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     location.DownloadFormat.Contains(Filters[LocationControlFields.DownloadFormat.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    location.Cookies.Contains(Filters[LocationControlFields.Cookies.ToString()], StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy($"{nameof(Location.LibraryName)} ASC")
-                .ThenBy($"{nameof(Location.SeriesName)} ASC")
-                .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(location => (location.LibraryName, location.SeriesName, location.Name), location => location.Name);
+                    location.Cookies.Contains(Filters[LocationControlFields.Cookies.ToString()], StringComparison.CurrentCultureIgnoreCase));
+                
+            if (SelectedLevel == LocationsListLevels.Library)
+                LocationsKeysQuery = LocationsKeysQuery.OrderBy($"{nameof(Location.LibraryName)} ASC")
+                    .ThenBy($"{nameof(Location.SeriesName)} ASC")
+                    .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");            
+            else if (SelectedLevel == LocationsListLevels.Series)
+                LocationsKeysQuery = LocationsKeysQuery.OrderBy($"{nameof(Location.SeriesName)} ASC")
+                    .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");  
+            else
+                LocationsKeysQuery = LocationsKeysQuery.OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");  
+
+            LocationsKeys = LocationsKeysQuery.ToDictionary(location => (location.LibraryName, location.SeriesName, location.Name), location => location.Name);
+
+            EntityListLevel = GetEntityListLevel();
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);
@@ -506,11 +570,19 @@
             LocationControlFields.Cookies => nameof(Location.Cookies),
             LocationControlFields.DownloadFormat => nameof(Location.DownloadFormat),
             LocationControlFields.MatchFilters => nameof(Location.MatchFilters),
+            LocationControlFields.ReverseFetch => nameof(Location.ReverseFetch),
             LocationControlFields.FetchCount => nameof(Location.FetchCount),
             LocationControlFields.Url => nameof(Location.Url),
             LocationControlFields.LibraryName => nameof(Location.LibraryName),
             LocationControlFields.SeriesName => nameof(Location.SeriesName),
             LocationControlFields.Name or _ => nameof(Location.Name)
+        };
+
+        private EntityListLevels GetEntityListLevel() => SelectedLevel switch
+        {
+            LocationsListLevels.Locations => EntityListLevels.Entity,
+            LocationsListLevels.Series => EntityListLevels.Category,
+            LocationsListLevels.Library or _ => EntityListLevels.SuperCategory
         };
 
         #endregion

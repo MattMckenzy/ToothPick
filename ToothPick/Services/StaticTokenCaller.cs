@@ -1,23 +1,17 @@
 ﻿namespace ToothPick.Services
 {
-   /// <summary>
+    /// <summary>
     /// Extends the rest service caller for a singleton-designed client token call.
     /// </summary>
-    public sealed class StaticTokenCaller<T> : IRestServiceCaller where T : IRestServiceProvider
+    /// <remarks>
+    /// Default constructor.
+    /// </remarks>
+    /// <param name="restServiceProvider">An instance of the service provider used for this caller.</param>
+    /// <param name="httpClient">An instance of a configured HttpClient.</param>
+    public sealed class StaticTokenCaller<T>(T restServiceProvider, HttpClient httpClient) : IRestServiceCaller where T : IRestServiceProvider
     {
-        private readonly T _restServiceProvider;
-        private readonly HttpClient _httpClient;
-
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        /// <param name="restServiceProvider">An instance of the service provider used for this caller.</param>
-        /// <param name="httpClient">An instance of a configured HttpClient.</param>
-        public StaticTokenCaller(T restServiceProvider, HttpClient httpClient)
-        {
-            _restServiceProvider = restServiceProvider;
-            _httpClient = httpClient;
-        }
+        private readonly T _restServiceProvider = restServiceProvider;
+        private readonly HttpClient _httpClient = httpClient;
 
         /// <summary>
         /// Builds and returns a base request message containing proper configuration and authentication.

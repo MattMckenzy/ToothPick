@@ -1,0 +1,35 @@
+﻿.btn {
+    color : inherit !important;
+}
+
+.btn-category {
+    padding: 0.25rem 0.5rem;
+    font-weight: 600;
+    background-color: transparent;
+    border: 0;
+}
+
+    .btn-category > .oi::before {
+        display: inline-block;
+        width: 1.25em;
+        line-height: 0;
+        transition: transform 0.35s ease;
+        transform-origin: 0.5em 50%;
+        transform: rotate(90deg);
+        -webkit-transform: rotate(90deg);
+        -ms-transform: rotate(90deg);
+    }
+
+    .collapsed > .oi::before {
+        transform: rotate(0deg);
+        -webkit-transform: rotate(0deg);
+        -ms-transform: rotate(0deg);
+    }
+
+    .btn-category:focus {
+        box-shadow: 0 0 0 2px rgba(190,25,25,0.7);
+    }
+
+    .btn-category:hover, .sidebar-list .btn-category:focus {
+        background-color: rgba(190,25,25,0.1);
+    }

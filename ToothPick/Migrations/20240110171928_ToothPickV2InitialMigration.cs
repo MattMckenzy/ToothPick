@@ -84,7 +84,7 @@ namespace ToothPick.Migrations
                         name: "FK_Locations_Series_LibraryName_SeriesName",
                         columns: x => new { x.LibraryName, x.SeriesName },
                         principalTable: "Series",
-                        principalColumns: new[] { "LibraryName", "Name" },
+                        principalColumns: ["LibraryName", "Name"],
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -116,7 +116,7 @@ namespace ToothPick.Migrations
                         name: "FK_Media_Series_LibraryName_SeriesName",
                         columns: x => new { x.LibraryName, x.SeriesName },
                         principalTable: "Series",
-                        principalColumns: new[] { "LibraryName", "Name" },
+                        principalColumns: ["LibraryName", "Name"],
                         onDelete: ReferentialAction.Cascade);
                 });
         }

@@ -7,16 +7,20 @@
     </div>
 }
 
-<div hidden="@IsLoading">
-    <CollectionControl IsUpdating=@IsUpdating 
+<div class="entities-wrapper" hidden="@IsLoading">
+    
+    <CollectionControl 
+        LevelChangeCallback=SelectLevel
+        SelectedLevel=@SelectedLevel
         OrderingFieldCallback=SelectLibraryOrder 
         IsAscending=@IsAscending 
         OrderingCallback=ToggleOrder 
         SelectedOrderingField=@SelectedLibraryOrder
         FilteringCallback=FilterLibraries 
-        FilterValues=@Filters/>
+        FilterValues=@Filters         
+        IsUpdating=@IsUpdating />
 
-    <div class="libraries">
+    <div class="entities">
 
         @if (LibrariesKeys != null)
         {
@@ -26,22 +30,25 @@
                 CreateTitle="Create Library"
                 DeleteCallback=DeleteLibrary
                 DeleteTitle="Delete Library"
+                DeleteAllTitle="Delete Shown Libraries"
                 LoadCallback=LoadLibrary
-                CurrentItem=@((string.Empty, string.Empty, CurrentLibrary.Name))></EntitySidebar>
+                CurrentItem=@((string.Empty, string.Empty, CurrentLibrary.Name))
+                EntityListLevel=@EntityListLevels.Entity>
+            </EntitySidebar>
         } 
 
-        <div class="main mb-3">
+        <div class="grid-main mb-3">
             @if (CurrentLibraryKeyLocked)
             {
                 <div class="mb-3 d-flex align-items-center justify-content-around">
-                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/series?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Series <span class="bi bi-list-stars m-1 fs-5" />
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" href="/series?Filters=LibraryName|~:|@(CurrentLibrary.Name)&FromLink=true">
+                        Go to Series <span class="bi bi-list-stars m-1 fs-5" />
                     </a>
-                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/locations?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Locations <span class="bi bi-crosshair m-1 fs-5" />
+                    <a id="locationsButton" class="m-2 btn btn-primary" role="button" href="/locations?Filters=LibraryName|~:|@(CurrentLibrary.Name)&FromLink=true">
+                        Go to Locations <span class="bi bi-crosshair m-1 fs-5" />
                     </a>
-                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" 
-                        href="/media?Filters=LibraryName:@(CurrentLibrary.Name)">Go to Media <span class="bi bi-collection-play m-1 fs-5" />
+                    <a id="mediaButton" class="m-2 btn btn-primary" role="button" href="/media?Filters=LibraryName|~:|@(CurrentLibrary.Name)&FromLink=true">
+                        Go to Media <span class="bi bi-collection-play m-1 fs-5" />
                     </a>
                 </div>
             }         

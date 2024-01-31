@@ -1,6 +1,4 @@
-using System.ComponentModel;
-
-namespace ToothPick.Models
+namespace ToothPick.Enums
 {
     public enum LocationControlFields
     {        
@@ -16,6 +14,9 @@ namespace ToothPick.Models
         
         [Display(Name = "Fetch Count")]
         FetchCount,
+
+        [Display(Name = "Reverse Fetch")]
+        ReverseFetch,
 
         [Display(Name = "Match Filters")]
         MatchFilters,

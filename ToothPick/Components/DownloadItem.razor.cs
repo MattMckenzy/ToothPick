@@ -4,8 +4,6 @@ namespace ToothPick.Components
 {
     public partial class DownloadItem : IDisposable
     {
-
-        protected DownloadProgress? DownloadProgress = null;
         protected int progress = 0;
 
         [Inject]
@@ -16,9 +14,6 @@ namespace ToothPick.Components
 
         [Parameter]
         public required Download Download { get; set; }
-
-        [Parameter]
-        public int Index { get; set; }
 
         private ModalPrompt ModalPromptReference = null!;
 
@@ -34,7 +29,7 @@ namespace ToothPick.Components
 
         public async Task UpdateProgress(DownloadProgress downloadProgress)
         {
-            DownloadProgress = downloadProgress;
+            Download.DownloadProgress = downloadProgress;
             progress = Convert.ToInt32((downloadProgress?.Progress ?? 0) * 100);
             await InvokeAsync(StateHasChanged);
         }

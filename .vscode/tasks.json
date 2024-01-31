@@ -59,6 +59,26 @@
         },
         {
             "type": "docker-build",
+            "label": "docker-build: trace",
+            "dependsOn": [
+                "build"
+            ],
+            "dockerBuild": {
+                "tag": "toothpick:dev",
+                "target": "base",
+                "dockerfile": "${workspaceFolder}/ToothPick/Dockerfile-Trace",
+                "context": "${workspaceFolder}",
+                "pull": true,
+                "buildArgs":{
+                    "CONFIG": "Debug"
+                }
+            },
+            "netCore": {
+                "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj"
+            }
+        },
+        {
+            "type": "docker-build",
             "label": "docker-build: release",
             "dependsOn": [
                 "build"
@@ -113,6 +133,30 @@
             "netCore": {
                 "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj"
             }
-        }
+        },
+        {
+            "type": "docker-run",
+            "label": "docker-run: trace",
+            "dependsOn": [
+                "docker-build: trace"
+            ],
+            "dockerRun": {
+                "volumes": [ 
+                    { "localPath": "${userHome}/Working/ToothPick/Data", "containerPath": "/ToothPick/data" },
+                    { "localPath": "${userHome}/Working/ToothPick/Media", "containerPath": "/ToothPick/Media"},
+                    { "localPath": "${userHome}/Working/ToothPick/Cookies", "containerPath": "/ToothPick/Cookies"} ,
+                    { "localPath": "${userHome}/Working/ToothPick/Trace", "containerPath": "/ToothPick/Trace"} 
+                ],
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://+:80",
+                    "TZ": "America/Toronto"
+                }
+            },
+            "netCore": {
+                "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj",
+                "enableDebugging": true
+            }
+        },
     ]
 }

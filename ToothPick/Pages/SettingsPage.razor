@@ -5,14 +5,36 @@
 
 <PageTitle>ToothPick - Settings</PageTitle>
 
-<h2>Settings</h2>  
-
 <CascadingValue Name="@nameof(ItemKey)" Value="@ItemKey">
-    <SettingsList />
+    <CascadingValue Name="@nameof(Level)" Value="@Level">
+        <CascadingValue Name="@nameof(Order)" Value="@Order">
+            <CascadingValue Name="@nameof(IsAscending)" Value="@IsAscending">
+                <CascadingValue Name="@nameof(Filters)" Value="@Filters">
+                    <SettingsList />
+                </CascadingValue>
+            </CascadingValue>
+        </CascadingValue>
+    </CascadingValue>
 </CascadingValue>
 
 @code {
     [Parameter]
     [SupplyParameterFromQuery(Name = nameof(ItemKey))]
     public string? ItemKey { get; set; } 
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Level))]
+    public string? Level { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Order))]
+    public string? Order { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(IsAscending))]
+    public string? IsAscending { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = nameof(Filters))]
+    public string? Filters { get; set; }
 }

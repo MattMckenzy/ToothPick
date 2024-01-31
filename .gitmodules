@@ -1,0 +1,3 @@
+[submodule "YoutubeDLSharp"]
+	path = YoutubeDLSharp
+	url = https://github.com/Bluegrams/YoutubeDLSharp.git

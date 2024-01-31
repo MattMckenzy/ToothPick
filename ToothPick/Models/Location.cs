@@ -19,6 +19,7 @@ namespace ToothPick.Models
         public string Url { get; set; } = string.Empty;
 
         public int? FetchCount { get; set; }
+        public bool ReverseFetch { get; set; } = false;
 
         public string MatchFilters { get; set; } = string.Empty;
 

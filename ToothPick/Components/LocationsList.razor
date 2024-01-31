@@ -7,16 +7,19 @@
     </div>
 }
 
-<div hidden="@IsLoading">
-    <CollectionControl IsUpdating=@IsUpdating 
+<div class="entities-wrapper" hidden="@IsLoading">
+    <CollectionControl 
+        LevelChangeCallback=SelectLevel
+        SelectedLevel=@SelectedLevel
         OrderingFieldCallback=SelectLocationOrder 
         IsAscending=@IsAscending 
         OrderingCallback=ToggleOrder 
         SelectedOrderingField=@SelectedLocationOrder
         FilteringCallback=FilterLocations 
-        FilterValues=@Filters/>
+        FilterValues=@Filters
+        IsUpdating=@IsUpdating />
 
-    <div class="locations">
+    <div class="entities">
 
         @if (LocationsKeys != null)
         {
@@ -24,24 +27,29 @@
                 Items=@LocationsKeys
                 CreateCallback=CreateLocation
                 CreateTitle="Create Location"
-                DeleteCallback=DeleteLocation
+                DeleteCallback=DeleteLocations
                 DeleteTitle="Delete Location"
+                DeleteAllTitle="Delete Shown Locations"
                 LoadCallback=LoadLocation
-                CurrentItem=@((CurrentLocation.LibraryName, CurrentLocation.SeriesName, CurrentLocation.Name))>
+                CurrentItem=@((CurrentLocation.LibraryName, CurrentLocation.SeriesName, CurrentLocation.Name))
+                EntityListLevel=@EntityListLevel>
             </EntitySidebar>
         } 
 
-        <div class="main mb-3">
+        <div class="grid-main mb-3">
             @if (CurrentLocationKeyLocked)
             {
                 <div class="mb-3 d-flex align-items-center justify-content-around">
-                    <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                        href="/libraries?ItemKey=@(CurrentLocation.LibraryName)">Go to Library <span class="bi bi-list m-1 fs-5" />
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" href="/libraries?ItemKey=@(CurrentLocation.LibraryName)&FromLink=true">
+                        Go to Library <span class="bi bi-list m-1 fs-5" />
                     </a>                    
                     @if (!string.IsNullOrWhiteSpace(CurrentLocation.SeriesName))
                     {
-                        <a id="locationButton" class="m-2 btn btn-primary" role="button" 
-                            href="/series?ItemKey=@($"{CurrentLocation.LibraryName}|~|{CurrentLocation.SeriesName}")&Filters=LibraryName:@(CurrentLocation.LibraryName)">Go to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        <a id="seriesButton" class="m-2 btn btn-primary" role="button" href="/series?ItemKey=@($"{CurrentLocation.LibraryName}|~|{CurrentLocation.SeriesName}")&Filters=LibraryName|~:|@(CurrentLocation.LibraryName)&FromLink=true">
+                            Go to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        </a>
+                        <a id="mediaButton" class="m-2 btn btn-primary" role="button" href="/media?Filters=LibraryName|~:|@(CurrentLocation.LibraryName)|~;|SeriesName|~:|@(CurrentLocation.SeriesName)&FromLink=true">
+                            Go to Media <span class="bi bi-collection-play m-1 fs-5" />
                         </a>
                     }
                 </div>
@@ -104,12 +112,17 @@
             <div class="mb-3">
                 <label for="fetchCount" class="form-label">Fetch Count</label>
                 <input class="form-control integer-only enter-next @(string.IsNullOrWhiteSpace(FetchCountFeedback) ? (CurrentLocationIsDirty ? "is-valid" : string.Empty) : "is-invalid")"
-                       type="text" id="pe" value="@(CurrentFetchCount == null ? CurrentLocation.FetchCount : CurrentFetchCount)" aria-describedby="fetchCountFeedback"
+                       type="text" id="fetchCount" value="@(CurrentFetchCount == null ? CurrentLocation.FetchCount : CurrentFetchCount)" aria-describedby="fetchCountFeedback"
                        @onfocusin=@(async (FocusEventArgs _) => await FocusIn(nameof(Location.FetchCount)))
                        @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.FetchCount), changeEventArgs.Value!)) />
                 <div id="fetchCountFeedback" class="invalid-feedback">
                     @FetchCountFeedback
                 </div>             
+            </div>             
+            <div class="mb-3">
+                <input class="form-check-input" type="checkbox" id="reverseFetch" checked="@CurrentLocation.ReverseFetch"
+                       @onchange=@(async (ChangeEventArgs changeEventArgs) => await UpdateProperty(nameof(Location.ReverseFetch), changeEventArgs.Value!)) />
+                <label for="reverseFetch" class="form-check-label">Reverse Fetch</label>                                   
             </div> 
             <div class="mb-3">
                 <label for="matchFilters" class="form-label">Match Filters</label>

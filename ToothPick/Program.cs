@@ -29,6 +29,7 @@ global using Microsoft.JSInterop;
 global using ToothPick.Components;
 global using ToothPick.Exceptions;
 global using ToothPick.Extensions;
+global using ToothPick.Enums;
 global using ToothPick.Models;
 global using ToothPick.Services;
 
@@ -55,6 +56,7 @@ webApplicationBuilder.Services.AddSingleton<GotifyServiceAppProvider>();
 webApplicationBuilder.Services.AddSingleton<GotifyService>();
 webApplicationBuilder.Services.AddSingleton<DownloadsService>();
 webApplicationBuilder.Services.AddSingleton<StatusService>();
+webApplicationBuilder.Services.AddScoped<StorageService>();
 webApplicationBuilder.Services.AddHostedService<ToothPickHostedService>();
 
 

@@ -8,25 +8,38 @@
         [Inject]
         private DownloadsService DownloadsService { get; set; } = null!;
 
+        private PeriodicTimer PeriodicTimer { get; } = new(TimeSpan.FromSeconds(3));
+
         private bool disposedValue;
 
         protected override Task OnInitializedAsync()
         {
-            DownloadList = DownloadsService.Downloads.ToArray();
+            DownloadList = [.. DownloadsService.Downloads];
+
+            _ = Task.Run(async () => {
+                while(!disposedValue){
+                    await PeriodicTimer.WaitForNextTickAsync();                    
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+
             return base.OnInitializedAsync();
         }
 
         protected override void OnAfterRender(bool firstRender)
         {
             if (firstRender)
+            {
                 DownloadsService.UpdateDelegates.TryAdd(this, UpdateDownloads);
+
+            }
 
             base.OnAfterRender(firstRender);
         }
 
         public async Task UpdateDownloads()
         {
-            DownloadList = DownloadsService.Downloads.ToArray();
+            DownloadList = [.. DownloadsService.Downloads];
             await InvokeAsync(StateHasChanged);
         }
 

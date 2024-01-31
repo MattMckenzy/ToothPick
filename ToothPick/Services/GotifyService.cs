@@ -16,36 +16,36 @@ namespace ToothPick.Services
         private event EventHandler<GotifyMessageEventArgs>? OnNewGotifyMessage = null;
 
         public async Task PushMessage(string Title, string Message, LogLevel logLevel, CancellationToken cancellationToken = new())
-        {               
-            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(cancellationToken);
-
-            string logFilterTokensString = (await toothPickContext.Settings.GetSettingAsync("LogFilterTokens", cancellationToken: cancellationToken)).Value;
-            IEnumerable<string> LogFilterTokens = logFilterTokensString.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (LogFilterTokens.Any(token => 
-                    Title.Contains(token, StringComparison.InvariantCultureIgnoreCase) || 
-                    Message.Contains(token, StringComparison.InvariantCultureIgnoreCase)))
-                return;
-
-            GotifyMessage newMessage;
-            lock (GotifyMessages)
-            {
-                newMessage = new()
-                {
-                    InternalId = GotifyMessages.Count + 1,
-                    Title = Title,
-                    Message = Message,
-                    Date = DateTime.Now,
-                    Priority = GetGotifyPriority(logLevel)
-                };
-
-                GotifyMessages.Add(newMessage.InternalId, newMessage);
-            }
-
-            OnNewGotifyMessage?.Invoke(this, new GotifyMessageEventArgs { GotifyMessage = newMessage });
-
+        {             
             try
-            {
+            {  
+                using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(cancellationToken);
+
+                string logFilterTokensString = (await toothPickContext.Settings.GetSettingAsync("LogFilterTokens", cancellationToken: cancellationToken)).Value;
+                IEnumerable<string> LogFilterTokens = logFilterTokensString.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                if (LogFilterTokens.Any(token => 
+                        Title.Contains(token, StringComparison.InvariantCultureIgnoreCase) || 
+                        Message.Contains(token, StringComparison.InvariantCultureIgnoreCase)))
+                    return;
+
+                GotifyMessage newMessage;
+                lock (GotifyMessages)
+                {
+                    newMessage = new()
+                    {
+                        InternalId = GotifyMessages.Count + 1,
+                        Title = Title,
+                        Message = Message,
+                        Date = DateTime.Now,
+                        Priority = GetGotifyPriority(logLevel)
+                    };
+
+                    GotifyMessages.Add(newMessage.InternalId, newMessage);
+                }
+
+                OnNewGotifyMessage?.Invoke(this, new GotifyMessageEventArgs { GotifyMessage = newMessage });
+
                 if (await CanUseGotify(cancellationToken: cancellationToken))
                 {
                     Setting gotifyLogLevelSetting = await toothPickContext.Settings.GetSettingAsync("GotifyLogLevel", cancellationToken);
@@ -58,6 +58,10 @@ namespace ToothPick.Services
                             content: JsonConvert.SerializeObject(newMessage));
                     }
                 }
+            }            
+            catch (Exception exception) when (exception is OperationCanceledException || exception is TaskCanceledException)
+            {
+                Logger.LogDebug("The task was canceled while pushing a message to Gotify.");
             }
             catch (CommunicationException communicationException)
             {
@@ -173,7 +177,7 @@ namespace ToothPick.Services
                     httpRequestException.StackTrace);
             }
 
-            return Array.Empty<GotifyMessage>();
+            return [];
         }
 
         public async Task SubscribeToStream(Func<GotifyMessage, Task> callBack, CancellationToken cancellationToken = new())

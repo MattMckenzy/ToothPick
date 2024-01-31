@@ -1,14 +1,14 @@
-﻿<button class="btn btn-item-delete d-inline-flex align-items-center rounded my-1 px-1 py-0 text-danger" title="@DeleteTitle" @onclick=@(async () => await DeleteCallback.InvokeAsync(ItemKey))>
+﻿<button class="btn btn-item-delete d-inline-flex align-items-center rounded my-1 px-1 py-0 text-danger" title="@DeleteTitle" @onclick=@(async () => await DeleteCallback.InvokeAsync(ItemKeys))>
     <span class="bi bi-x-lg"></span>
 </button>
 
 @code {
 
     [Parameter]
-    public required (string SuperCategory, string Category, string Key) ItemKey { get; set; }
+    public required IEnumerable<(string SuperCategory, string Category, string Key)> ItemKeys { get; set; }
 
     [Parameter]
-    public required EventCallback<(string SuperCategory, string Category, string Key)> DeleteCallback { get; set; }
+    public required EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>> DeleteCallback { get; set; }
 
     [Parameter]
     public string DeleteTitle { get; set; } = string.Empty;

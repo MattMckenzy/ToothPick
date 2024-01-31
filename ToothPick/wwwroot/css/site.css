@@ -69,3 +69,24 @@ a, .btn-link {
 .ui-calendar > input {
     background-color: paleturquoise!important;
 }
+
+.entities-wrapper {
+    height:100%
+}
+
+.grid-main {
+    grid-area: main;
+    height: 100%;
+    overflow-y: auto;
+}
+
+@media (min-width: 800px) {
+    .entities {
+        height: calc(100% - 73.6px);
+        display: grid;
+        gap: 1.5rem;
+        grid-template-areas: "sidebar main";
+        grid-template-columns: 324px 1fr;
+        padding-top: 1.5rem !important;
+    }
+}

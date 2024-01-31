@@ -1,11 +1,12 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 ARG TARGETARCH
 ARG CONFIG
-COPY . ./
+WORKDIR /src
+COPY . ./  
 RUN dotnet restore "ToothPick/ToothPick.csproj" -a $TARGETARCH
 RUN dotnet publish "ToothPick/ToothPick.csproj" -a $TARGETARCH -c $CONFIG -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 ARG TARGETARCH
 WORKDIR /app
 EXPOSE 80

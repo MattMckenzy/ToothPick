@@ -1,7 +1,12 @@
 ﻿namespace ToothPick.Extensions
 {
-    public static class Helpers
+    public static partial class Helpers
     {
+        [GeneratedRegex("(?:season |s)([0-9]+)|([0-9])(?:[0-9]{2})", RegexOptions.IgnoreCase, "en-CA")]
+        public static partial Regex SeasonRegex();
+        [GeneratedRegex("(?:[0-9]([0-9]{2}))|(?:episode |e|ep\\.|ep\\. )([0-9]+)", RegexOptions.IgnoreCase, "en-CA")]
+        public static partial Regex EpisodeRegex();
+
         private static CancellationTokenSource DelayCancelCancellationTokenSource = new();
         public static async Task DelayCancel(this Func<Task> action, int millisecondsDelay = 500)
         {

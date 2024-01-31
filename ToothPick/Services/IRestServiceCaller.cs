@@ -105,7 +105,7 @@
         private static string GetRequestUri(Uri baseUri, string route, Dictionary<string, string>? queryParameters = null)
         {
             NameValueCollection queryParameterCollection = HttpUtility.ParseQueryString(string.Empty);
-            foreach (KeyValuePair<string, string> keyValuePair in queryParameters ?? new Dictionary<string, string>())
+            foreach (KeyValuePair<string, string> keyValuePair in queryParameters ?? [])
                 queryParameterCollection[keyValuePair.Key] = keyValuePair.Value;
 
             UriBuilder uriBuilder = new(new Uri(baseUri, route))

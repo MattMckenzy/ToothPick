@@ -1,0 +1,53 @@
+﻿@if (Items.Any())
+{
+    <Virtualize Items="Items" Context="item" ItemSize="37" OverscanCount="20" SpacerElement="li">
+        <ItemContent>
+            @{
+                bool isSelected = CurrentItem.SuperCategory == item.Key.SuperCategory && CurrentItem.Category == item.Key.Category && CurrentItem.Key == item.Key.Key;
+            }
+            <li class="container-fluid">
+                <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync((item.Key.SuperCategory, item.Key.Category, item.Key.Key)))>
+                    <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate @(isSelected ? "selected" : string.Empty)">@item.Value</button>
+                </div>
+                @if(DeleteCallback.HasDelegate)
+                {
+                    <EntitySidebarDeleteButton 
+                        ItemKeys=@([(item.Key.SuperCategory, item.Key.Category, item.Key.Key)]) 
+                        DeleteCallback=@DeleteCallback 
+                        DeleteTitle=@DeleteTitle />
+                }
+            </li>
+
+        </ItemContent>
+        <Placeholder>
+            <p>
+                Loading&hellip;
+            </p>
+        </Placeholder>
+        <EmptyContent>
+            <p>
+                There are no @Title to display.
+            </p>
+        </EmptyContent>
+    </Virtualize>
+}
+
+@code {    
+    [Parameter]
+    public required Dictionary<(string SuperCategory, string Category, string Key), string> Items { get; set; } = null!;
+
+    [Parameter]
+    public (string SuperCategory, string Category, string Key) CurrentItem { get; set; }
+
+    [Parameter]
+    public required string Title { get; set; } = null!; 
+    
+    [Parameter]
+    public EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>> DeleteCallback { get; set; }
+
+    [Parameter]
+    public string DeleteTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<(string SuperCategory, string Category, string Key)> LoadCallback { get; set; }
+}

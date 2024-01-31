@@ -17,13 +17,13 @@
             <div class="progress position-relative" style="height: 28px; background-color: #959595">
                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @($"{progress}%");" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100" />
                 <div class="position-absolute overflow-hidden text-white" style="text-align:center; line-height:28px; font-size:18px; left:0; right:0;">
-                    @if (DownloadProgress != null && DownloadProgress.State.Equals(DownloadState.Downloading))
+                    @if (Download.DownloadProgress != null && Download.DownloadProgress.State.Equals(DownloadState.Downloading))
                     {
-                        @($"{DownloadProgress.State.ToString()} - {progress}% of {DownloadProgress.TotalDownloadSize} @ {DownloadProgress.DownloadSpeed} - {DownloadProgress.ETA} left");
+                        @($"{Download.DownloadProgress.State.ToString()} - {progress}% of {Download.DownloadProgress.TotalDownloadSize} @ {Download.DownloadProgress.DownloadSpeed} - {Download.DownloadProgress.ETA} left");
                     }
-                    else if (DownloadProgress != null)
+                    else if (Download.DownloadProgress != null)
                     {
-                        @(DownloadProgress.State.ToString())
+                        @(Download.DownloadProgress.State.ToString())
                     }
                     else
                     {
@@ -34,11 +34,11 @@
         </div>
     </div>
 
-    @if (DownloadProgress != null && !string.IsNullOrWhiteSpace(DownloadProgress.Data))
+    @if (Download.DownloadProgress != null && !string.IsNullOrWhiteSpace(Download.DownloadProgress.Data))
     {
         <div class="d-flex bd-highlight align-items-center">
             <strong class="p-2 flex-grow-1 bd-highlight overflow-hidden text-wrap text-danger">
-                @DownloadProgress.Data
+                @Download.DownloadProgress.Data
             </strong>
         </div>
     }

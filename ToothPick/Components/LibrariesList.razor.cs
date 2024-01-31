@@ -14,7 +14,7 @@
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [Inject]
-        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+        private StorageService StorageService { get; set; } = null!;
 
         #endregion
 
@@ -22,6 +22,9 @@
 
         [CascadingParameter(Name = nameof(ItemKey))]
         public string? ItemKey { get; set; }
+
+        [CascadingParameter(Name = nameof(Level))]
+        public string? Level { get; set; }
 
         [CascadingParameter(Name = nameof(Order))]
         public string? Order { get; set; }
@@ -32,15 +35,17 @@
         [CascadingParameter(Name = nameof(Filters))]
         public string? FiltersQuery { get; set; }
 
+        [CascadingParameter(Name = nameof(FromLink))]
+        public bool? FromLink { get; set; }
+
         #endregion
 
         #region Private Variables
 
         private bool IsLoading { get; set; } = true;
-        private bool IsUpdating { get; set; } = false;
+        private bool IsUpdating { get; set; } = true;
 
-
-        private IEnumerable<Library> LibrariesCollection { get; set; } = Array.Empty<Library>();
+        private IEnumerable<Library> LibrariesCollection { get; set; } = [];
         private Dictionary<(string SuperCategory, string Category, string Key), string>? LibrariesKeys { get; set; }
         private Dictionary<string, IEnumerable<string>>? CategoryKeys { get; set; }
 
@@ -60,6 +65,7 @@
 
         private ModalPrompt? ModalPromptReference = null;
 
+        private LibraryListLevels SelectedLevel { get; set; } = LibraryListLevels.Library;
         private bool IsAscending { get; set; } = true;
         private LibraryControlFields SelectedLibraryOrder { get; set; } = LibraryControlFields.Name;
         private Dictionary<string, string> Filters { get; set; } = [];
@@ -70,9 +76,7 @@
 
         protected override Task OnInitializedAsync()
         {
-            if (!Filters.ContainsKey(string.Empty))
-                Filters.Add(string.Empty, string.Empty);
-
+            Filters.TryAdd(string.Empty, string.Empty);
             foreach (LibraryControlFields libraryControlFields in Enum.GetValues<LibraryControlFields>())
             {
                 if (!Filters.ContainsKey(libraryControlFields.ToString()))
@@ -90,26 +94,38 @@
                 await JSRuntime.InvokeVoidAsync("setNumericOnly");
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
 
-                if (string.IsNullOrWhiteSpace(Order))
-                    Order = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-Order")).Value;
+                if (!FromLink ?? false)
+                {
+                    if (string.IsNullOrWhiteSpace(value: Level))
+                        Level = await StorageService.Get("LibrariesList-Level");
+
+                    if (string.IsNullOrWhiteSpace(Order))
+                        Order = await StorageService.Get("LibrariesList-Order");
+
+                    if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                        IsAscendingQuery = await StorageService.Get("LibrariesList-IsAscending");
+
+                    if (string.IsNullOrWhiteSpace(FiltersQuery))
+                        FiltersQuery = await StorageService.Get("LibrariesList-Filters");
+
+                    if (string.IsNullOrWhiteSpace(ItemKey))
+                        ItemKey = await StorageService.Get("LibrariesList-ItemKey");
+                }
+            
+                SelectedLevel = Enum.TryParse(Level, out LibraryListLevels parsedLevel) ? parsedLevel : LibraryListLevels.Library;
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), SelectedLevel.ToString()), false);
                 
                 SelectedLibraryOrder = Enum.TryParse(Order, out LibraryControlFields parsedOrder) ? parsedOrder : LibraryControlFields.Name;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedLibraryOrder.ToString()), false);
 
-                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
-                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-IsAscending")).Value;
-
                 IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
 
-                if (string.IsNullOrWhiteSpace(FiltersQuery))
-                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-Filters")).Value;
-
                 if (FiltersQuery != null)
                 {
-                    foreach (string filterQuery in FiltersQuery.Split(";", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    foreach (string filterQuery in FiltersQuery.Split("|~;|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                     {
-                        IEnumerable<string> keyValuePair = filterQuery.Split(":", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        IEnumerable<string> keyValuePair = filterQuery.Split("|~:|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                         string? key = keyValuePair.ElementAtOrDefault(0);
                         string? value = keyValuePair.ElementAtOrDefault(1);
 
@@ -117,14 +133,9 @@
                             Filters[key] = value ?? string.Empty;
                     }
                 }
-                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
-
-                await UpdateLibrariesKeys();
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"))), false);
 
                 await UpdatePageState();
-
-                if (string.IsNullOrWhiteSpace(ItemKey))
-                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-ItemKey")).Value;
 
                 if (ItemKey != null && LibrariesCollection.Any(library => library.Name.ToString().Equals(ItemKey)))
                     await LoadLibrary((string.Empty, string.Empty, ItemKey));
@@ -241,38 +252,80 @@
             await UpdatePageState();
         }
 
-        private async Task DeleteLibrary((string _, string __, string Key) item)
+        private async Task DeleteLibrary(IEnumerable<(string SuperCategory, string Category, string Key)> items)
         {
-            Library? library = LibrariesCollection.FirstOrDefault(library => library.Name.Equals(item.Key, StringComparison.InvariantCultureIgnoreCase));
+            IEnumerable<Library> validItems = LibrariesCollection.Where(library => items.Any(item => item.Key == library.Name));
 
-            if (library == null)
+            if (!validItems.Any())
                 return;
-
-            await ModalPromptReference!.ShowModalPrompt(new()
+            else if (validItems.Count() == 1)
             {
-                Title = "Delete the library?",
-                Body = new MarkupString($"<p>Really delete the library \"{library.Name}\"? This will also delete all child series, locations and media.</p>"),
-                CancelChoice = "Cancel",
-                Choice = "Delete",
-                ChoiceColour = "danger",
-                ChoiceAction = async () =>
+                Library library = validItems.First();
+
+                await ModalPromptReference!.ShowModalPrompt(new()
                 {
-                    using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
-                    toothPickContext.Remove(library);
-                    await toothPickContext.SaveChangesAsync();
-
-                    await ModalPromptReference.ShowModalPrompt(new()
+                    Title = "Delete the library?",
+                    Body = new MarkupString($"<p>Really delete the library \"{library.Name}\"? This will also delete all child series, locations and media.</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
                     {
-                        Title = "Succesfully deleted!",
-                        Body = new MarkupString($"<p>Succesfully deleted the library \"{library.Name}\"!</p>"),
-                        CancelChoice = "Dismiss"
-                    });
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
-                    await UpdatePageState();
-                }
-            });
+                        toothPickContext.RemoveRange(library);
+                        await toothPickContext.SaveChangesAsync();
 
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the library \"{library.Name}\"!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+            else
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Delete all shown libraries?",
+                    Body = new MarkupString($"<p>Really delete the {validItems.Count()} libraries shown? This will also delete all their child series, locations and media.</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
+                    {
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
+
+                        toothPickContext.RemoveRange(validItems);
+                        await toothPickContext.SaveChangesAsync();
+
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the {validItems.Count()} libraries shown!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+        }
+
+        private async Task SelectLevel(LibraryListLevels libraryListLevel)
+        {
+            SelectedLevel = libraryListLevel;
+            string libraryLevelQuery = libraryListLevel.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), libraryLevelQuery), false);
+        
+            if (!string.IsNullOrWhiteSpace(libraryLevelQuery))
+                await StorageService.Set("LibrariesList-Level", libraryLevelQuery);
+
+            await UpdateLibrariesKeys();
         }
 
         private async Task ToggleOrder()
@@ -282,7 +335,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), isAscendingQuery), false);
 
             if (!string.IsNullOrWhiteSpace(isAscendingQuery))
-                await ProtectedLocalStorage.SetAsync("LibrariesList-IsAscending", isAscendingQuery);
+                await StorageService.Set("LibrariesList-IsAscending", isAscendingQuery);
 
             await UpdateLibrariesKeys();
         }
@@ -294,7 +347,7 @@
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), libraryOrderQuery), false);
 
             if (!string.IsNullOrWhiteSpace(libraryOrderQuery))
-                await ProtectedLocalStorage.SetAsync("LibrariesList-Order", libraryOrderQuery);
+                await StorageService.Set("LibrariesList-Order", libraryOrderQuery);
 
             await UpdateLibrariesKeys();
         }
@@ -302,11 +355,11 @@
         private async Task FilterLibraries(Dictionary<string, string> filters)
         {
             Filters = filters;
-            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
+            string filtersQuery = string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"));
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), filtersQuery), false);
             
             if (!string.IsNullOrWhiteSpace(filtersQuery))
-                await ProtectedLocalStorage.SetAsync("LibrariesList-Filters", filtersQuery);
+                await StorageService.Set("LibrariesList-Filters", filtersQuery);
             
             await UpdateLibrariesKeys();
         }
@@ -325,7 +378,7 @@
             CurrentLibraryIsDirty = (!CurrentLibraryKeyLocked && !CompareLibraries(CurrentLibrary, new Library() )) ||
                 (CurrentLibraryKeyLocked && !CompareLibraries(CurrentLibrary, toothPickContext.Libraries.ToArray().FirstOrDefault(library => library.Name == CurrentLibrary.Name)));
 
-            LibrariesCollection = toothPickContext.Libraries.ToArray();
+            LibrariesCollection = [.. toothPickContext.Libraries];
 
             await UpdateLibrariesKeys();
 
@@ -359,7 +412,7 @@
         {
             CurrentLibrary = library;
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), library.Name), false);
-            await ProtectedLocalStorage.SetAsync("LibrariesList-ItemKey", library.Name);
+            await StorageService.Set("LibrariesList-ItemKey", library.Name);
 
             await UpdatePageState();
         }
@@ -368,8 +421,6 @@
         {
             IsUpdating = true;
             await InvokeAsync(StateHasChanged);
-
-            ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
             string globalFilter = Filters[string.Empty];
 

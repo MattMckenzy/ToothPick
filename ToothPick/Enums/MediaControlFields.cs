@@ -1,4 +1,4 @@
-namespace ToothPick.Models
+namespace ToothPick.Enums
 {
     public enum MediaControlFields
     {        

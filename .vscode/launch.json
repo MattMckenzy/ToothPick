@@ -38,6 +38,15 @@
             "netCore": {
                 "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj",
             }
+        },
+        {
+            "name": "Docker .NET Launch Trace",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run: trace",
+            "netCore": {
+                "appProject": "${workspaceFolder}/ToothPick/ToothPick.csproj",
+            }
         }
     ]
 }

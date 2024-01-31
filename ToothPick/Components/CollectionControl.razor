@@ -1,9 +1,27 @@
 ﻿@typeparam TFieldEnum where TFieldEnum : struct, Enum
+@typeparam TLevelEnum where TLevelEnum : struct, Enum
 
 <div class="d-flex justify-content-between align-items-center flex-wrap">
     <div class="d-flex align-items-center flex-wrap">
 
-        <div class="me-3 mb-2" style="width:250px;">
+        <div class="me-3 mb-2" style="width:200px;">
+            <label class="mb-1" for="sortSelect">Level</label>
+            <div class="input-group">
+                @{
+                    bool isLocked = Enum.GetValues<TLevelEnum>().Length < 2;
+                }
+                <select class="form-select @(isLocked ? "readonly disabled" : string.Empty)" id="levelSelect" readonly=@isLocked disabled=@isLocked
+                    @onchange=@(async (ChangeEventArgs changeEventArgs) => await LevelChangeCallback(Enum.Parse<TLevelEnum>((string)changeEventArgs.Value!)))>
+                    @foreach (TLevelEnum level in Enum.GetValues<TLevelEnum>())
+                    {
+                        <option value="@level" selected="@(SelectedLevel.Equals(level))">@level.GetDisplayName()</option>
+                    }
+                </select>
+                
+            </div>
+        </div>
+    
+        <div class="me-3 mb-2" style="width:200px;">
             <label class="mb-1" for="sortSelect">Order</label>
             <div class="input-group">
 
@@ -22,7 +40,7 @@
             </div>
         </div>
 
-        <div class="me-3 mb-2" style="width:250px;">
+        <div class="me-3 mb-2" style="width:300px;">
             <label class="mb-1" for="filterBox">Search</label>
             <div class="input-group">
                 <input type="text" class="form-control" id="filterBox" value=@FilterValues[string.Empty]
@@ -71,6 +89,13 @@
 </div>
 
 @code {
+
+    [Parameter]
+    public required Func<TLevelEnum, Task> LevelChangeCallback { get; set; }
+
+    [Parameter]
+    public required TLevelEnum SelectedLevel { get; set; }
+
     [Parameter]
     public required Func<TFieldEnum, Task> OrderingFieldCallback { get; set; }
 

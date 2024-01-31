@@ -26,11 +26,13 @@
             { "GotifyHeader", "X-Gotify-Key" },
             { "GotifyLogLevel", "2" },
             { "GotifyUri", "" },
-            { "LogFilterTokens", "Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution" },
+            { "LogFilterTokens", "Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution;Unable to download JSON metadata" },
             { "DefaultFetchCount", "5" },
             { "NewSeriesFetchCountOverride", "5" },
+            { "NewSeriesDownloadEnabledOverride", "False" },
+            { "ParallelPlaylistFetch", "4" },
+            { "ParallelMediaDataFetch", "4" },
             { "ParallelDownloads","4" },
-            { "ParallelFetch", "4" },
             { "ScanDelayMinutes", "10" },
             { "ToothPickEnabled", "True" },
             { "DownloadEnabled", "True" },
@@ -53,16 +55,18 @@
             { "GotifyHeader", "String - The header used to authenticate with Gotify, typically \"X-Gotify-Key\"." },
             { "GotifyLogLevel", "Integer - The minimum log level to post to Gotify: Trace = 0, Debug = 1, Information = 2, Warning = 3, Error = 4, Critical = 5, and None = 6. Defaults to 2 (Information)" },
             { "GotifyUri", "String - The Uri for the Gotify instance to use for notifications." },
-            { "LogFilterTokens", "String - A case-insensitive, semi-colon delimited list of tokens used to filter out unwanted log messages. Defaults with a couple of commonly ignored warnings: \"Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution\"" },
+            { "LogFilterTokens", "String - A case-insensitive, semi-colon delimited list of tokens used to filter out unwanted log messages. Defaults with a couple of commonly ignored warnings: \"Incomplete data received;Invalid start time;unavailable videos are hidden;Temporary failure in name resolution;Unable to download JSON metadata\"" },
             { "DefaultFetchCount", "Integer - The default amount of videos to fetch and check for download if not specified in the location or overrode for a new series. Defaults to 5." },
             { "NewSeriesFetchCountOverride", "Integer - The amount of videos to fetch for a new, no downloaded media, series. Defaults to 5." },
+            { "NewSeriesDownloadEnabledOverride", "Boolean - True to enable new media download for a new, no downloaded media, series. False will scan and register media. Registered media will never be downloaded unless their associated entries are deleted." },
+            { "ParallelPlaylistFetch", "Integer - The amount of parallel playlist fetches, retrieving media playlist metadata, to perform. Defaults to 4." },
+            { "ParallelMediaDataFetch", "Integer - The amount of parallel media data fetches, retrieving specific media metadata, to perform. Defaults to 4." },
             { "ParallelDownloads", "Integer - The amount of parallel downloads to perform. Defaults to 4." },
-            { "ParallelFetch", "Integer - The amount of parallel fetches, retrieving media metadata, to perform. Defaults to 4." },
             { "ScanDelayMinutes", "Integer - The amount of minutes to wait between scanning locations for new media. Defaults to 10." },
             { "ToothPickEnabled", "Boolean - True to enable new media scanning and download, False to disable." },
             { "DownloadEnabled", "Boolean - True to enable new media download, False will scan and register media. Registered media will never be downloaded unless their associated entries are deleted." },
             { "UserAgent", "String - The user agent to use while fetching and downlaoding media. Defaults to \"Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0\""  },
-            { "TotalRateLimitMBPS", "Integer - The amount of MBPS allotted to ToothPick for media downloads. Defaults to unlimited." }
+            { "TotalRateLimitMBPS", "Integer - The amount of megabytes per second bandwith allotted to ToothPick for media downloads. Defaults to unlimited." }
         };
 
         public static readonly List<string> ReadOnlySettings =

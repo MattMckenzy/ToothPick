@@ -24,7 +24,7 @@
 
         public async Task UpdateStatuses()
         {
-            Statuses = StatusService.Statuses.ToArray();
+            Statuses = [.. StatusService.Statuses];
             await InvokeAsync(StateHasChanged);
         }
 

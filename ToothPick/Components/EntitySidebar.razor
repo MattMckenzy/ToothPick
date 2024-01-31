@@ -1,77 +1,55 @@
 ﻿<aside class="sidebar">
     <div class="sticky-wrapper">
-        <div class="d-flex justify-content-between">
+        <div class="d-flex justify-content-between" style="padding-right: 25px;">
             <h5>@Title</h5>
-            @if (CreateCallback.HasDelegate)
-            {
-                <button class="btn btn-item-add d-inline-flex align-items-center rounded my-1 me-3 px-1 py-0" @onclick=@(async () => await CreateCallback.InvokeAsync()) title="@CreateTitle">
-                    <span class="oi oi-plus text-success"></span>
-                </button>
-            }
+            <div>
+                @if (CreateCallback.HasDelegate)
+                {
+                    <button class="btn btn-item-add d-inline-flex align-items-center rounded my-1 me-3 px-1 py-0" @onclick=@(async () => await CreateCallback.InvokeAsync()) title="@CreateTitle">
+                        <span class="oi oi-plus text-success"></span>
+                    </button>
+                }
+                @if(DeleteCallback.HasDelegate)
+                {
+                    <EntitySidebarDeleteButton 
+                        ItemKeys=@Items.Keys
+                        DeleteCallback=@DeleteCallback 
+                        DeleteTitle=@DeleteAllTitle />
+                }                
+            </div>
         </div>
         <nav class="sidebar-list" id="modulesList" aria-label="Modules List">
-            <ul class="list-unstyled mb-0 pt-md-1">
+            <ul class="list-unstyled mb-0 py-md-1">
 
-                @foreach ((string SuperCategory, List<(string Category, List<(string Key, string DisplayText)> Items)> Categories) superCategory in SuperCategories)
+                @if(EntityListLevel == EntityListLevels.SuperCategory)
                 {
-                    @if(!string.IsNullOrWhiteSpace(superCategory.SuperCategory))
-                    {
-                        <li class="mb-1">
-                            <u class="text-start pe-none">
-                                @superCategory.SuperCategory
-                            </u>
-                        </li>
-                    }
-
-                    @foreach ((string Category, List<(string Key, string DisplayText)> Items) category in superCategory.Categories)
-                    {
-                        @if(!string.IsNullOrWhiteSpace(category.Category))
-                        {
-                            <li class="my-1">
-                                <button class="btn btn-category rounded text-start text-truncate mw-100 d-flex align-items-center collapsed" data-bs-toggle="collapse" data-bs-target="#collapse-@((superCategory.SuperCategory+category.Category).GetKey())" aria-expanded="false">
-                                    <i class="oi oi-chevron-right pe-1"></i>
-                                    @category.Category
-                                </button>
-                                <div class="collapse" id="collapse-@((superCategory.SuperCategory+category.Category).GetKey())">
-                                    <ul class="list-unstyled fw-normal pb-1 small">
-
-                                        <Virtualize Items="category.Items" Context="item">
-                                            @{
-                                                bool isSelected = CurrentItem.SuperCategory == superCategory.SuperCategory && CurrentItem.Category == category.Category && CurrentItem.Key == item.Key;
-                                            }
-                                            <li class="container-fluid">
-                                                <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync((superCategory.SuperCategory, category.Category, item.Key)))>
-                                                    <button class="btn btn-item-load my-1 me-2 px-1 py-0 text-truncate @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
-                                                </div>
-                                                @if(DeleteCallback.HasDelegate)
-                                                {
-                                                    <EntitySidebarDeleteButton ItemKey=@((superCategory.SuperCategory, category.Category, item.Key)) DeleteCallback=@DeleteCallback DeleteTitle=@DeleteTitle />
-                                                }
-                                            </li>
-                                        </Virtualize>
-
-                                    </ul>
-                                </div>
-                            </li>
-                        }
-                        else
-                        {
-                            <Virtualize Items="category.Items" Context="item">
-                                @{
-                                    bool isSelected = CurrentItem.SuperCategory == superCategory.SuperCategory && CurrentItem.Category == category.Category && CurrentItem.Key == item.Key;
-                                }
-                                <li class="container-fluid">
-                                    <div style="width:calc(100% - 34px);" class="d-inline-flex align-items-center" @onclick=@(async () => await LoadCallback.InvokeAsync((superCategory.SuperCategory, category.Category, item.Key)))>
-                                        <button class="btn btn-item-load my-1 px-1 py-0 text-truncate @(isSelected ? "selected" : string.Empty)">@item.DisplayText</button>
-                                    </div>
-                                    @if (DeleteCallback.HasDelegate)
-                                    {
-                                        <EntitySidebarDeleteButton ItemKey=@((superCategory.SuperCategory, category.Category, item.Key)) DeleteCallback=@DeleteCallback DeleteTitle=@DeleteTitle />
-                                    }
-                                </li>
-                            </Virtualize>
-                        }                   
-                    }
+                    <EntitySidebarSuperCategories
+                        Items=@Items
+                        Title=@Title 
+                        CurrentItem=@CurrentItem 
+                        DeleteCallback=@DeleteCallback 
+                        DeleteTitle=@DeleteTitle 
+                        LoadCallback=@LoadCallback />
+                }
+                else if (EntityListLevel == EntityListLevels.Category)
+                {
+                    <EntitySidebarCategories
+                        Items=@Items
+                        Title=@Title
+                        CurrentItem=@CurrentItem 
+                        DeleteCallback=@DeleteCallback 
+                        DeleteTitle=@DeleteTitle 
+                        LoadCallback=@LoadCallback />                    
+                }
+                else if (EntityListLevel == EntityListLevels.Entity)
+                {
+                    <EntitySidebarItems
+                        Items=@Items
+                        Title=@Title
+                        CurrentItem=@CurrentItem 
+                        DeleteCallback=@DeleteCallback 
+                        DeleteTitle=@DeleteTitle 
+                        LoadCallback=@LoadCallback />
                 }
             </ul>
         </nav>
@@ -89,10 +67,13 @@
     public (string SuperCategory, string Category, string Key) CurrentItem { get; set; }
 
     [Parameter]
-    public EventCallback<(string SuperCategory, string Category, string Key)> DeleteCallback { get; set; }
+    public EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>> DeleteCallback { get; set; }
 
     [Parameter]
     public string DeleteTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public string DeleteAllTitle { get; set; } = string.Empty;
 
     [Parameter]
     public EventCallback CreateCallback { get; set; }
@@ -103,10 +84,11 @@
     [Parameter]
     public EventCallback<(string SuperCategory, string Category, string Key)> LoadCallback { get; set; }
 
+    [Parameter]
+    public EntityListLevels EntityListLevel { get; set; } = EntityListLevels.SuperCategory;
+ 
     [Inject]
     public IJSRuntime JSRuntime { get; set; } = null!;
-
-    private List<(string SuperCategory, List<(string Catgeory, List<(string Key, string DisplayText)> Items)> Categories)> SuperCategories { get; set; } = new();
 
     public override async Task SetParametersAsync(ParameterView parameters)
     {
@@ -130,10 +112,13 @@
                         await CurrentItemUpdated();                 
                     break;
                 case nameof(DeleteCallback):
-                    DeleteCallback = (EventCallback<(string SuperCategory, string Category, string Key)>)parameter.Value;
+                    DeleteCallback = (EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>>)parameter.Value;
                     break;
                 case nameof(DeleteTitle):
                     DeleteTitle = (string)parameter.Value;
+                    break;
+                case nameof(DeleteAllTitle):
+                    DeleteAllTitle = (string)parameter.Value;
                     break;
                 case nameof(CreateCallback):
                     CreateCallback = (EventCallback)parameter.Value;
@@ -144,6 +129,9 @@
                 case nameof(LoadCallback):
                     LoadCallback = (EventCallback<(string SuperCategory, string Category, string Key)>)parameter.Value;
                     break;
+                case nameof(EntityListLevel):
+                    EntityListLevel = (EntityListLevels)parameter.Value;
+                    break;
                 default:
                     throw new ArgumentException($"Unknown parameter: {parameter.Name}");
             }
@@ -153,24 +141,12 @@
     }
 
     private async Task ItemsUpdated()
-    {        
-        SuperCategories.Clear();
-        foreach(KeyValuePair<(string SuperCategory, string Category, string Key), string> item in Items)
-        {         
-            if (SuperCategories.LastOrDefault().SuperCategory == item.Key.SuperCategory)
-                if (SuperCategories.Last().Categories.LastOrDefault().Catgeory == item.Key.Category)
-                    SuperCategories.Last().Categories.Last().Items.Add((item.Key.Key, item.Value));
-                else
-                    SuperCategories.Last().Categories.Add((item.Key.Category, new() {(item.Key.Key, item.Value)} ));
-            else
-                SuperCategories.Add((item.Key.SuperCategory, new() {(item.Key.Category, new() {(item.Key.Key, item.Value)} )} ));
-        }   
-
-        if (SuperCategories.Count == 1 && 
-            SuperCategories.First().Categories.Count == 1 &&
-            !string.IsNullOrWhiteSpace(SuperCategories.First().SuperCategory) &&
-            !string.IsNullOrWhiteSpace(SuperCategories.First().Categories.First().Catgeory))
-            await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(SuperCategories.First().SuperCategory+SuperCategories.First().Categories.First().Catgeory).GetKey()}");  
+    {       
+        if (Items.DistinctBy(item => item.Key.SuperCategory).Count() == 1 && 
+            Items.DistinctBy(item => item.Key.Category).Count() == 1 &&
+            !string.IsNullOrWhiteSpace(Items.First().Key.SuperCategory) &&
+            !string.IsNullOrWhiteSpace(Items.First().Key.Category))
+            await JSRuntime.InvokeVoidAsync("expand", $"collapse-{(Items.First().Key.SuperCategory+Items.First().Key.Category).GetKey()}");  
     }
 
     private async Task CurrentItemUpdated()

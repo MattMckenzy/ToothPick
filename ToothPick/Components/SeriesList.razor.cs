@@ -14,14 +14,17 @@
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [Inject]
-        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
-         
+        private StorageService StorageService { get; set; } = null!;
+
         #endregion
 
         #region Parameters
 
         [CascadingParameter(Name = nameof(ItemKey))]
         public string? ItemKey { get; set; }
+
+        [CascadingParameter(Name = nameof(Level))]
+        public string? Level { get; set; }
 
         [CascadingParameter(Name = nameof(Order))]
         public string? Order { get; set; }
@@ -32,16 +35,18 @@
         [CascadingParameter(Name = nameof(Filters))]
         public string? FiltersQuery { get; set; }
 
+        [CascadingParameter(Name = nameof(FromLink))]
+        public bool? FromLink { get; set; }
+
         #endregion
 
         #region Private Variables
 
         private bool IsLoading { get; set; } = true;
-        private bool IsUpdating { get; set; } = false;
+        private bool IsUpdating { get; set; } = true;
 
-
-        private IEnumerable<Library> LibraryCollection { get; set; } = Array.Empty<Library>();
-        private IEnumerable<Series> SeriesCollection { get; set; } = Array.Empty<Series>();
+        private IEnumerable<Library> LibraryCollection { get; set; } = [];
+        private IEnumerable<Series> SeriesCollection { get; set; } = [];
         private Dictionary<(string SuperCategory, string Category, string Key), string>? SeriesKeys { get; set; }
 
         private Series CurrentSeries { get; set; } = new() { LibraryName = string.Empty, Name = string.Empty };
@@ -70,6 +75,9 @@
 
         private ModalPrompt? ModalPromptReference = null;
 
+        private EntityListLevels EntityListLevel { get; set; } = EntityListLevels.Category;
+
+        private SeriesListLevels SelectedLevel { get; set; } = SeriesListLevels.Library;
         private bool IsAscending { get; set; } = true;
         private SeriesControlFields SelectedSeriesOrder { get; set; } = SeriesControlFields.Name;
         private Dictionary<string, string> Filters { get; set; } = [];
@@ -80,9 +88,7 @@
 
         protected override Task OnInitializedAsync()
         {
-            if (!Filters.ContainsKey(string.Empty))
-                Filters.Add(string.Empty, string.Empty);
-
+            Filters.TryAdd(string.Empty, string.Empty);
             foreach (SeriesControlFields seriesControlFields in Enum.GetValues<SeriesControlFields>())
             {
                 if (!Filters.ContainsKey(seriesControlFields.ToString()))
@@ -100,26 +106,39 @@
                 await JSRuntime.InvokeVoidAsync("setNumericOnly");
                 await JSRuntime.InvokeVoidAsync("setEnterNext");
 
-                if (string.IsNullOrWhiteSpace(Order))
-                    Order = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-Order")).Value;
-                                
+                if (!FromLink ?? false)
+                {
+                    if (string.IsNullOrWhiteSpace(value: Level))
+                        Level = await StorageService.Get("SeriesList-Level");
+
+                    if (string.IsNullOrWhiteSpace(Order))
+                        Order = await StorageService.Get("SeriesList-Order");
+
+                    if (string.IsNullOrWhiteSpace(IsAscendingQuery))
+                        IsAscendingQuery = await StorageService.Get("SeriesList-IsAscending");
+
+                    if (string.IsNullOrWhiteSpace(FiltersQuery))
+                        FiltersQuery = await StorageService.Get("SeriesList-Filters");
+
+                    if (string.IsNullOrWhiteSpace(ItemKey))
+                        ItemKey = await StorageService.Get("SeriesList-ItemKey");
+                }
+
+                SelectedLevel = Enum.TryParse(Level, out SeriesListLevels parsedLevel) ? parsedLevel : SeriesListLevels.Library;
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), SelectedLevel.ToString()), false);
+
                 SelectedSeriesOrder = Enum.TryParse(Order, out SeriesControlFields parsedOrder) ? parsedOrder : SeriesControlFields.Name;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), SelectedSeriesOrder.ToString()), false);
 
-                if (string.IsNullOrWhiteSpace(IsAscendingQuery))
-                    IsAscendingQuery = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-IsAscending")).Value;
-
                 IsAscending = !bool.TryParse(IsAscendingQuery, out bool parsedIsAscending) || parsedIsAscending;
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
- 
-                if (string.IsNullOrWhiteSpace(FiltersQuery))
-                    FiltersQuery = (await ProtectedLocalStorage.GetAsync<string>("SeriesList-Filters")).Value;
+
 
                 if (FiltersQuery != null)
                 {
-                    foreach (string filterQuery in FiltersQuery.Split(";", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                    foreach (string filterQuery in FiltersQuery.Split("|~;|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
                     {
-                        IEnumerable<string> keyValuePair = filterQuery.Split(":", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        IEnumerable<string> keyValuePair = filterQuery.Split("|~:|", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                         string? key = keyValuePair.ElementAtOrDefault(0);
                         string? value = keyValuePair.ElementAtOrDefault(1);
 
@@ -127,20 +146,15 @@
                             Filters[key] = value ?? string.Empty;
                     }
                 }
-                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
-
-                await UpdateSeriesKeys();
+                NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"))), false);
 
                 await UpdatePageState();
-                
-                if (string.IsNullOrWhiteSpace(ItemKey))
-                    ItemKey = (await ProtectedLocalStorage.GetAsync<string>("LibrariesList-ItemKey")).Value;
 
                 if (ItemKey != null)
                 {
                     string[] itemKeys = ItemKey.Split("|~|");
                     if (itemKeys.Length == 2)
-                    await LoadSeries((string.Empty, itemKeys[0], itemKeys[1]));
+                        await LoadSeries((string.Empty, itemKeys[0], itemKeys[1]));
                 }
                 else
                     await CreateSeries();
@@ -190,7 +204,7 @@
                     CancelChoice = "Cancel",
                     Choice = "Yes",
                     ChoiceColour = "danger",
-                    ChoiceAction = createSeries ,
+                    ChoiceAction = createSeries,
                 });
             else
                 createSeries();
@@ -262,38 +276,80 @@
             await UpdatePageState();
         }
 
-        private async Task DeleteSeries((string _, string Category, string Key) item)
+        private async Task DeleteSeries(IEnumerable<(string SuperCategory, string Category, string Key)> items)
         {
-            Series? series = SeriesCollection.FirstOrDefault(series => series.LibraryName == item.Category && series.Name == item.Key);
+            IEnumerable<Series> validItems = SeriesCollection.Where(series => items.Any(item => item.Category == series.LibraryName && item.Key == series.Name));
 
-            if (series == null)
+            if (!validItems.Any())
                 return;
-
-            await ModalPromptReference!.ShowModalPrompt(new()
+            else if (validItems.Count() == 1)
             {
-                Title = "Delete the series?",
-                Body = new MarkupString($"<p>Really delete the series \"{series.Name}\"? This will also delete all child locations and media.</p>"),
-                CancelChoice = "Cancel",
-                Choice = "Delete",
-                ChoiceColour = "danger",
-                ChoiceAction = async () =>
+                Series series = validItems.First();
+
+                await ModalPromptReference!.ShowModalPrompt(new()
                 {
-                    using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
-                    toothPickContext.Remove(series);
-                    await toothPickContext.SaveChangesAsync();
-
-                    await ModalPromptReference.ShowModalPrompt(new()
+                    Title = "Delete the series?",
+                    Body = new MarkupString($"<p>Really delete the series \"{series.Name}\"? This will also delete all child locations and media.</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
                     {
-                        Title = "Succesfully deleted!",
-                        Body = new MarkupString($"<p>Succesfully deleted the series \"{series.Name}\"!</p>"),
-                        CancelChoice = "Dismiss"
-                    });
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
 
-                    await UpdatePageState();
-                }
-            });
+                        toothPickContext.RemoveRange(series);
+                        await toothPickContext.SaveChangesAsync();
 
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the series \"{series.Name}\"!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+            else
+            {
+                await ModalPromptReference!.ShowModalPrompt(new()
+                {
+                    Title = "Delete all shown series?",
+                    Body = new MarkupString($"<p>Really delete the {validItems.Count()} series shown? This will also delete all their child locations and media.</p>"),
+                    CancelChoice = "Cancel",
+                    Choice = "Delete",
+                    ChoiceColour = "danger",
+                    ChoiceAction = async () =>
+                    {
+                        using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
+
+                        toothPickContext.Remove(validItems);
+                        await toothPickContext.SaveChangesAsync();
+
+                        await ModalPromptReference.ShowModalPrompt(new()
+                        {
+                            Title = "Succesfully deleted!",
+                            Body = new MarkupString($"<p>Succesfully deleted the {validItems.Count()} series shown!</p>"),
+                            CancelChoice = "Dismiss"
+                        });
+
+                        await UpdatePageState();
+                    }
+                });
+            }
+        }
+
+        private async Task SelectLevel(SeriesListLevels seriesListLevel)
+        {
+            SelectedLevel = seriesListLevel;
+            string seriesLevelQuery = seriesListLevel.ToString();
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Level), seriesLevelQuery), false);
+
+            if (!string.IsNullOrWhiteSpace(seriesLevelQuery))
+                await StorageService.Set("SeriesList-Level", seriesLevelQuery);
+
+            await UpdateSeriesKeys();
         }
 
         private async Task ToggleOrder()
@@ -301,9 +357,9 @@
             IsAscending = !IsAscending;
             string isAscendingQuery = IsAscending.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(IsAscending), IsAscending.ToString()), false);
-         
+
             if (!string.IsNullOrWhiteSpace(isAscendingQuery))
-                await ProtectedLocalStorage.SetAsync("SeriesList-IsAscending", isAscendingQuery);
+                await StorageService.Set("SeriesList-IsAscending", isAscendingQuery);
 
             await UpdateSeriesKeys();
         }
@@ -313,9 +369,9 @@
             SelectedSeriesOrder = seriesOrder;
             string seriesOrderQuery = seriesOrder.ToString();
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Order), seriesOrder.ToString()), false);
-           
+
             if (!string.IsNullOrWhiteSpace(seriesOrderQuery))
-                await ProtectedLocalStorage.SetAsync("SeriesList-Order", seriesOrderQuery);
+                await StorageService.Set("SeriesList-Order", seriesOrderQuery);
 
             await UpdateSeriesKeys();
         }
@@ -323,12 +379,12 @@
         private async Task FilterSeries(Dictionary<string, string> filters)
         {
             Filters = filters;
-            string filtersQuery = string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"));
-            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), string.Join(";", Filters.Select(keyValuePair => $"{keyValuePair.Key}:{keyValuePair.Value}"))), false);
+            string filtersQuery = string.Join("|~;|", Filters.Select(keyValuePair => $"{keyValuePair.Key}|~:|{keyValuePair.Value}"));
+            NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filters), filtersQuery), false);
             
             if (!string.IsNullOrWhiteSpace(filtersQuery))
-                await ProtectedLocalStorage.SetAsync("SeriesList-Filters", filtersQuery);
-            
+                await StorageService.Set("SeriesList-Filters", filtersQuery);
+
             await UpdateSeriesKeys();
         }
 
@@ -346,8 +402,8 @@
             CurrentSeriesIsDirty = (!CurrentSeriesKeyLocked && !CompareSeries(CurrentSeries, NewSeries())) ||
                 (CurrentSeriesKeyLocked && !CompareSeries(CurrentSeries, toothPickContext.Series.ToArray().FirstOrDefault(series => series.LibraryName == CurrentSeries.LibraryName && series.Name == CurrentSeries.Name)));
 
-            LibraryCollection = toothPickContext.Libraries.ToArray();
-            SeriesCollection = toothPickContext.Series.ToArray();
+            LibraryCollection = [.. toothPickContext.Libraries];
+            SeriesCollection = [.. toothPickContext.Series];
 
             await UpdateSeriesKeys();
 
@@ -423,7 +479,7 @@
             CurrentSeries = series;
             string itemKey = $"{series.LibraryName}|~|{series.Name}";
             NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(ItemKey), itemKey), false);
-            await ProtectedLocalStorage.SetAsync("SeriesList-ItemKey", itemKey);
+            await StorageService.Set("SeriesList-ItemKey", itemKey);
 
             await UpdatePageState();
         }
@@ -433,11 +489,9 @@
             IsUpdating = true;
             await InvokeAsync(StateHasChanged);
 
-            ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
-
             string globalFilter = Filters[string.Empty];
 
-            SeriesKeys = SeriesCollection.AsQueryable()
+            IQueryable<Series> SeriesKeysQuery = SeriesCollection.AsQueryable()
                 .Where(series =>
                     (
                     series.LibraryName.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -453,10 +507,17 @@
                     series.ThumbnailLocation.Contains(Filters[SeriesControlFields.ThumbnailLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     series.BannerLocation.Contains(Filters[SeriesControlFields.BannerLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
                     series.PosterLocation.Contains(Filters[SeriesControlFields.PosterLocation.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    series.LogoLocation.Contains(Filters[SeriesControlFields.LogoLocation.ToString()], StringComparison.CurrentCultureIgnoreCase))
-                .OrderBy($"{nameof(Series.LibraryName)} ASC")
-                .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
-                .ToDictionary(series => (string.Empty, series.LibraryName, series.Name), series => series.Name);
+                    series.LogoLocation.Contains(Filters[SeriesControlFields.LogoLocation.ToString()], StringComparison.CurrentCultureIgnoreCase));
+
+            if (SelectedLevel == SeriesListLevels.Library)
+                SeriesKeysQuery = SeriesKeysQuery.OrderBy($"{nameof(Series.LibraryName)} ASC")
+                    .ThenBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");
+            else
+                SeriesKeysQuery = SeriesKeysQuery.OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}");
+
+            SeriesKeys = SeriesKeysQuery.ToDictionary(series => (string.Empty, series.LibraryName, series.Name), series => series.Name);
+
+            EntityListLevel = GetEntityListLevel();
 
             IsUpdating = false;
             await InvokeAsync(StateHasChanged);
@@ -471,6 +532,12 @@
             SeriesControlFields.Description => nameof(Series.Description),
             SeriesControlFields.LibraryName => nameof(Series.LibraryName),
             SeriesControlFields.Name or _ => nameof(Series.Name)
+        };
+
+        private EntityListLevels GetEntityListLevel() => SelectedLevel switch
+        {
+            SeriesListLevels.Series => EntityListLevels.Entity,
+            SeriesListLevels.Library or _ => EntityListLevels.Category,
         };
 
         #endregion

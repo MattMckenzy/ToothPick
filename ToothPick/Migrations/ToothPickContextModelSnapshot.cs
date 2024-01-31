@@ -57,6 +57,9 @@ namespace ToothPick.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ReverseFetch")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasColumnType("TEXT");

@@ -1,0 +1,20 @@
+﻿.btn {
+    color : inherit !important;
+}
+
+    .btn-item-load:focus, .btn-item-load.selected {
+        box-shadow: 0 0 0 2px rgba(190,25,25, 0.8);
+    }
+
+    .btn-item-load:hover, .btn-item-load:focus, .btn-item-load.selected {
+        background-color: rgba(190,25,25,0.1);
+    }
+
+    .btn-item-delete:focus {
+        box-shadow: 0 0 0 2px rgb(220 53 69 / 70%);
+    }
+
+    .btn-item-delete:hover, .btn-item-delete:focus {
+        color: rgba(220, 53, 69, 0.85);
+        background-color: rgba(220, 53, 69, 0.1);
+    }

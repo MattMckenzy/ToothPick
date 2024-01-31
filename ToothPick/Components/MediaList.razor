@@ -7,33 +7,48 @@
 </div>
 }
 
-<div hidden="@IsLoading">
-    <CollectionControl IsUpdating=@IsUpdating OrderingFieldCallback=SelectMediaOrder IsAscending=@IsAscending
-        OrderingCallback=ToggleOrder SelectedOrderingField=@SelectedMediaOrder FilteringCallback=FilterMedia
-        FilterValues=@Filters />
+<div class="entities-wrapper" hidden="@IsLoading">
+    <CollectionControl 
+        LevelChangeCallback=SelectLevel
+        SelectedLevel=@SelectedLevel
+        OrderingFieldCallback=SelectMediaOrder 
+        IsAscending=@IsAscending
+        OrderingCallback=ToggleOrder 
+        SelectedOrderingField=@SelectedMediaOrder 
+        FilteringCallback=FilterMedia
+        FilterValues=@Filters 
+        IsUpdating=@IsUpdating />
 
-    <div class="media">
+    <div class="entities">
 
         @if (MediaKeys != null)
         {
-            <EntitySidebar Title="Media" Items=@MediaKeys LoadCallback=LoadMedia CurrentItem=@((CurrentMedia.LibraryName,
-            CurrentMedia.SeriesName, CurrentMedia.Url)) DeleteTitle="Delete Media" DeleteCallback=DeleteMedia>
+            <EntitySidebar 
+                Title="Media" 
+                Items=@MediaKeys 
+                CurrentItem=@((CurrentMedia.LibraryName, CurrentMedia.SeriesName, CurrentMedia.Url)) 
+                LoadCallback=LoadMedia 
+                DeleteTitle="Delete Media" 
+                DeleteAllTitle="Delete Shown Media" 
+                DeleteCallback=DeleteMedia
+                EntityListLevel=@EntityListLevel>
             </EntitySidebar>
         }
 
         @if (CurrentMedia != null)
         {
-            <div class="main mb-3">
+            <div class="grid-main mb-3">
                 <div class="mb-3 d-flex align-items-center justify-content-around">
-                    <a id="locationButton" class="m-2 btn btn-primary" role="button"
-                        href="/libraries?ItemKey=@(CurrentMedia.LibraryName)">Go to Library <span
-                            class="bi bi-list m-1 fs-5" />
+                    <a id="libraryButton" class="m-2 btn btn-primary" role="button" href="/libraries?ItemKey=@(CurrentMedia.LibraryName)&FromLink=true">
+                        Go to Library <span class="bi bi-list m-1 fs-5" />
                     </a>
                     @if (!string.IsNullOrWhiteSpace(CurrentMedia.SeriesName))
                     {
-                        <a id="locationButton" class="m-2 btn btn-primary" role="button"
-                            href="/series?ItemKey=@($"{CurrentMedia.LibraryName}|~|{CurrentMedia.SeriesName}")&Filters=LibraryName:@(CurrentMedia.LibraryName)">Go
-                            to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        <a id="seriesButton" class="m-2 btn btn-primary" role="button" href="/series?ItemKey=@($"{CurrentMedia.LibraryName}|~|{CurrentMedia.SeriesName}")&Filters=LibraryName|~:|@(CurrentMedia.LibraryName)&FromLink=true">
+                            Go to Series <span class="bi bi-list-stars m-1 fs-5" />
+                        </a>                         
+                        <a id="locationsButton" class="m-2 btn btn-primary" role="button" href="/locations?Filters=LibraryName|~:|@(CurrentMedia.LibraryName)|~;|SeriesName|~:|@(CurrentMedia.SeriesName)&FromLink=true">
+                            Go to Locations <span class="bi bi-crosshair m-1 fs-5" />
                         </a>
                     }
                 </div>

@@ -18,7 +18,7 @@
                 XElement? firstChildMatch = element.Elements(node).FirstOrDefault();
                 if (firstChildMatch == null)
                 {
-                    XElement newChlid = new XElement(node);
+                    XElement newChlid = new(node);
                     element.Add(newChlid);
                     element = newChlid;
                 }

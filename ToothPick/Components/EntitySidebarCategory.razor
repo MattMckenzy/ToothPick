@@ -1,0 +1,40 @@
+﻿
+<li class="my-1">
+    <button class="btn btn-category rounded text-start text-truncate mw-100 d-flex align-items-center collapsed" data-bs-toggle="collapse" data-bs-target="#collapse-@((Items.First().Key.SuperCategory+Items.First().Key.Category).GetKey())" aria-expanded="false">
+        <i class="oi oi-chevron-right pe-1"></i>
+        @Items.First().Key.Category
+    </button>
+    <div class="collapse" id="collapse-@((Items.First().Key.SuperCategory+Items.First().Key.Category).GetKey())">
+        <ul class="list-unstyled fw-normal pb-1 small">
+
+            <EntitySidebarItems 
+                Items=@Items
+                CurrentItem=@CurrentItem 
+                Title=@Title
+                DeleteCallback=@DeleteCallback 
+                DeleteTitle=@DeleteTitle 
+                LoadCallback=@LoadCallback />
+
+        </ul>
+    </div>
+</li>
+
+@code {
+    [Parameter]
+    public required Dictionary<(string SuperCategory, string Category, string Key), string> Items { get; set; } = null!;
+
+    [Parameter]
+    public required string Title { get; set; } = null!; 
+
+    [Parameter]
+    public (string SuperCategory, string Category, string Key) CurrentItem { get; set; }
+
+    [Parameter]
+    public EventCallback<IEnumerable<(string SuperCategory, string Category, string Key)>> DeleteCallback { get; set; }
+
+    [Parameter]
+    public string DeleteTitle { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<(string SuperCategory, string Category, string Key)> LoadCallback { get; set; }
+}

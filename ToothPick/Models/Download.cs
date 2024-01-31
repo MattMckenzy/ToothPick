@@ -5,6 +5,8 @@ namespace ToothPick.Models
     public class Download
     {
         public required Media Media { get; set; }
+        
+        public DownloadProgress? DownloadProgress { get; set; } = null;
 
         public required CancellationTokenSource DownloadCancellationTokenSource { get; set; }
 

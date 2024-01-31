@@ -11,7 +11,7 @@ namespace ToothPick.Components
         private NavigationManager NavigationManager { get; set; } = null!;
 
         [Inject]
-        private ProtectedLocalStorage ProtectedLocalStorage { get; set; } = null!;
+        private StorageService StorageService { get; set; } = null!;
 
         [CascadingParameter(Name = nameof(Filter))]
         public string? Filter { get; set; }
@@ -31,7 +31,7 @@ namespace ToothPick.Components
             await GotifyService.SubscribeToStream(async (gotifyMessage) =>
                 {
                     await InvokeAsync(async () => {
-                        if (!GotifyMessages.Any(message => message.Id.Equals(gotifyMessage.Id)))
+                        if (!GotifyMessages.Any(message => message.InternalId.Equals(gotifyMessage.InternalId)))
                         {
                             GotifyMessages.Add(gotifyMessage);                                
                             GotifyMessages =
@@ -55,7 +55,7 @@ namespace ToothPick.Components
             {
                 if (string.IsNullOrWhiteSpace(Filter))
                 {
-                    Filter = (await ProtectedLocalStorage.GetAsync<string>("LogsList-Filter")).Value;
+                    Filter = await StorageService.Get("LogsList-Filter");
                     NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filter), Filter), false);
                 }
 
@@ -137,7 +137,7 @@ namespace ToothPick.Components
                 NavigationManager.NavigateTo(NavigationManager.GetUriWithQueryParameter(nameof(Filter), filteredLogLevelsString), false);
 
                 if (!string.IsNullOrWhiteSpace(filteredLogLevelsString))
-                    await ProtectedLocalStorage.SetAsync("LogsList-Filter", filteredLogLevelsString);
+                    await StorageService.Set("LogsList-Filter", filteredLogLevelsString);
                     
                 await UpdateLogs();
             }
