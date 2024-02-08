@@ -20,7 +20,7 @@ else
    set +o histexpand
    sed -i ''$(grep -Fn '## '$CURRENT_VERS'' CHANGELOG.md | cut -d ":" -f 1)'i## '$CHOSEN_VERS'\n\n- '"$MESSAGE"'\n' CHANGELOG.md
    replace '(## Release Notes(?:(?:.|\n)*?))(###(?:.|\n)*)' '$1' README.md
-   echo -e "$CHOSEN_VERS\n\n- $MESSAGE\n" >> README.md
+   echo -e "$CHOSEN_VERS\n\n- $MESSAGE" >> README.md
    set +o noglob
    set -o histexpand
    COMMIT_MESSAGE="$MESSAGE; bumped to version ${CHOSEN_VERS}"
@@ -38,4 +38,10 @@ gh release create -t "Release v$CHOSEN_VERS" -n "$MESSAGE" v$CHOSEN_VERS
 set +o noglob
 set -o histexpand
 
-docker buildx build --build-arg CONFIG="Release" --platform=linux/amd64,linux/arm64 --push -t "mattmckenzy/toothpick:latest" -f "ToothPick/Dockerfile" .
+docker buildx build --build-arg CONFIG="Release" --platform=linux/amd64,linux/arm64 --push -t "mattmckenzy/toothpick:latest" -t "mattmckenzy/toothpick:$CHOSEN_VERS" -f "ToothPick/Dockerfile" .
+docker run -v .:/workspace \
+  -e DOCKERHUB_USERNAME='mattmckenzy' \
+  -e DOCKERHUB_PASSWORD=$(cat ~/.tokens/docker-hub) \
+  -e DOCKERHUB_REPOSITORY='mattmckenzy/toothpick' \
+  -e README_FILEPATH='/workspace/README.md' \
+  peterevans/dockerhub-description:latest
