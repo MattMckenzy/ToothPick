@@ -165,6 +165,7 @@ Nothing Planned.
 
 ## Release Notes
 
-### 1.0.1
+1.1.0
 
-- Fixed issue with tracking media when playlist media url differed from media page url.
+- Changed download options to always remux media as MKV for greater subtitle compatibility.
+

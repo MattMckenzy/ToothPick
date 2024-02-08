@@ -431,11 +431,13 @@ namespace ToothPick.Services
 
                 mediaDownload.OptionSet.EmbedSubs = true;
                 mediaDownload.OptionSet.SubLangs = "all";
+                mediaDownload.OptionSet.RemuxVideo = "mkv";
                 mediaDownload.OptionSet.TrimFilenames = 150;
 
                 RunResult<string> runResult = await MediaDownloader.RunVideoDownload(
                     media.Url,
                     format: mediaDownload.OptionSet.Format,
+                    mergeFormat: DownloadMergeFormat.Mkv,
                     progress: downloadProgress,
                     ct: stoppingToken,
                     overrideOptions: mediaDownload.OptionSet);

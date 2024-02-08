@@ -335,9 +335,9 @@
                     settings.Name.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     settings.Value.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase) ||
                     settings.Description.Contains(globalFilter, StringComparison.CurrentCultureIgnoreCase)) &&
-                    settings.Name.Contains(Filters[LibraryControlFields.Name.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    settings.Value.Contains(Filters[SeriesControlFields.Description.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
-                    settings.Description.Contains(Filters[SeriesControlFields.Description.ToString()], StringComparison.CurrentCultureIgnoreCase))
+                    settings.Name.Contains(Filters[SettingsControlFields.Name.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
+                    settings.Value.Contains(Filters[SettingsControlFields.Value.ToString()], StringComparison.CurrentCultureIgnoreCase) &&
+                    settings.Description.Contains(Filters[SettingsControlFields.Description.ToString()], StringComparison.CurrentCultureIgnoreCase))
                 .OrderBy($"{GetSortingField()} {(IsAscending ? "ASC" : "DESC")}")
                 .ToDictionary(setting => (string.Empty, string.Empty, setting.Name), setting => setting.Name);
 
