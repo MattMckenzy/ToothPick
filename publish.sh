@@ -41,7 +41,7 @@ set -o histexpand
 docker buildx build --build-arg CONFIG="Release" --platform=linux/amd64,linux/arm64 --push -t "mattmckenzy/toothpick:latest" -t "mattmckenzy/toothpick:$CHOSEN_VERS" -f "ToothPick/Dockerfile" .
 docker run -v .:/workspace \
   -e DOCKERHUB_USERNAME='mattmckenzy' \
-  -e DOCKERHUB_PASSWORD=$(cat ~/.tokens/docker-hub) \
+  -e DOCKERHUB_PASSWORD="$(cat ~/.tokens/docker-hub)" \
   -e DOCKERHUB_REPOSITORY='mattmckenzy/toothpick' \
   -e README_FILEPATH='/workspace/README.md' \
   peterevans/dockerhub-description:latest
