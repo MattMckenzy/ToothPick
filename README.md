@@ -170,7 +170,6 @@ Nothing Planned.
 
 ## Release Notes
 
-1.1.0
+### 1.1.0
 
-- Changed download options to always remux media as MKV for greater subtitle compatibility.
-
+- Changed download options to always remux media as MKV for greater subtitle compatibility

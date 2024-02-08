@@ -20,7 +20,7 @@ else
    set +o histexpand
    sed -i ''$(grep -Fn '## '$CURRENT_VERS'' CHANGELOG.md | cut -d ":" -f 1)'i## '$CHOSEN_VERS'\n\n- '"$MESSAGE"'\n' CHANGELOG.md
    replace '(## Release Notes(?:(?:.|\n)*?))(###(?:.|\n)*)' '$1' README.md
-   echo -e "$CHOSEN_VERS\n\n- $MESSAGE" >> README.md
+   echo -e "### $CHOSEN_VERS\n\n- $MESSAGE" >> README.md
    set +o noglob
    set -o histexpand
    COMMIT_MESSAGE="$MESSAGE; bumped to version ${CHOSEN_VERS}"
