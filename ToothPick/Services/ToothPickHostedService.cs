@@ -539,6 +539,14 @@ namespace ToothPick.Services
 
         private async Task RegisterErrorDownload(Media newMedia, string errorMessage)
         {
+            using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync();
+
+            string logFilterTokensString = (await toothPickContext.Settings.GetSettingAsync("LogFilterTokens")).Value;
+            IEnumerable<string> LogFilterTokens = logFilterTokensString.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (LogFilterTokens.Any(token => errorMessage.Contains(token, StringComparison.InvariantCultureIgnoreCase)))
+                return;
+
             CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromMinutes(10));
 
             DownloadProgress downloadProgress = new(DownloadState.Error, data: errorMessage);
