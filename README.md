@@ -170,8 +170,6 @@ Nothing Planned.
 
 ## Release Notes
 
-### 1.1.1
-
-- Changed download options to always remux media as MKV for greater subtitle compatibility### 1.1.2
+### 1.1.2
 
 - LogFilterTokens will now filter out unwanted error media download items as well.
