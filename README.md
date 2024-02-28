@@ -170,6 +170,6 @@ Nothing Planned.
 
 ## Release Notes
 
-### 1.1.2
+### 1.1.3
 
-- LogFilterTokens will now filter out unwanted error media download items as well.
+- Fixed dirty check for banner location in series component.

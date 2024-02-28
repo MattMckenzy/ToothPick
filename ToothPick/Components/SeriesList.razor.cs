@@ -471,6 +471,7 @@
                 series1.Description.Equals(series2.Description, StringComparison.InvariantCulture) &&
                 series1.ThumbnailLocation.Equals(series2.ThumbnailLocation, StringComparison.InvariantCulture) &&
                 series1.PosterLocation.Equals(series2.PosterLocation, StringComparison.InvariantCulture) &&
+                series1.BannerLocation.Equals(series2.BannerLocation, StringComparison.InvariantCulture) &&
                 series1.LogoLocation.Equals(series2.LogoLocation, StringComparison.InvariantCulture);
         }
 

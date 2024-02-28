@@ -2,6 +2,10 @@
 
 All notable changes to "ToothPick" will be documented in this file.
 
+## 1.1.3
+
+- Fixed dirty check for banner location in series component.
+
 ## 1.1.2
 
 - LogFilterTokens will now filter out unwanted error media download items as well.
