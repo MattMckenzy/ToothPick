@@ -273,7 +273,7 @@ namespace ToothPick.Services
             try
             {
                 using ToothPickContext toothPickContext = await ToothPickContextFactory.CreateDbContextAsync(cancellationToken);
-                string videoUrl = videoData.Url;
+                string videoUrl = videoData.Url ?? videoData.WebpageUrl;
 
                 RunResult<VideoData> runResult = await MediaDataFetcher.RunVideoDataFetch(videoUrl, false, optionSet, cancellationToken);
                 if (runResult.Success && runResult.Data != null)

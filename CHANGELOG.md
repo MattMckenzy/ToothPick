@@ -2,6 +2,10 @@
 
 All notable changes to "ToothPick" will be documented in this file.
 
+## 1.1.4
+
+- Fixed issue with downloading single video URLs.
+
 ## 1.1.3
 
 - Fixed dirty check for banner location in series component.

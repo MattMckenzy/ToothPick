@@ -170,6 +170,6 @@ Nothing Planned.
 
 ## Release Notes
 
-### 1.1.3
+### 1.1.4
 
-- Fixed dirty check for banner location in series component.
+- Fixed issue with downloading single video URLs.
